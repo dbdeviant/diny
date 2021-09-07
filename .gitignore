@@ -1,0 +1,6 @@
+.DS_Store
+.vscode
+/target
+Cargo.lock
+Notes
+cargo-timing*

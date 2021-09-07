@@ -1,0 +1,25 @@
+[package]
+publish = false
+name = "diny_derive"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Derive macros for the diny framework"
+documentation = "https://docs.rs/diny_derive/"
+repository = "https://github.com/dbdeviant/diny/diny_derive"
+keywords = ["diny", "serialization", "async"]
+categories = ["encoding", "asynchronous"]
+readme = "crates-io.md"
+
+[lib]
+name = "diny_derive"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+syn = "1.0"
+quote = "1.0"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+targets = ["x86_64-unknown-linux-gnu"]

@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "diny",
+    "diny_core",
+    "diny_derive",
+    "diny_test",
+]

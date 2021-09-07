@@ -1,13 +1,4 @@
-# diny &emsp; [![Build Status]][ci] [![Latest Version]][crates.io] [![Docs]][docs.rs] [![License Info]][license_file]
-
-[Build Status]: https://img.shields.io/github/workflow/status/dbdeviant/diny/CI/main
-[ci]: https://github.com/dbdeviant/diny/actions?query=branch%3Amain
-[Latest Version]: https://img.shields.io/crates/v/diny
-[crates.io]: https://crates.io/crates/diny
-[Docs]: https://img.shields.io/docsrs/diny
-[docs.rs]: https://docs.rs/diny
-[License Info]: https://img.shields.io/crates/l/diny
-[license_file]: ./LICENSE.md
+# diny
 
 An asynchronous, alloc-free, serialization framework written in 100% safe Rust.
 
@@ -34,7 +25,7 @@ It's still a very young project and the design is subject to change, but as of n
 <br/>
 <br/>
 
-All that aside, **diny** is still in active design, so decisions on any of the above items could change significantly and without notice.
+Again, **diny** is still in active design, so decisions on any of the above items could change significantly and without notice.
 
 ## Usage
 
@@ -85,12 +76,5 @@ fn main() {
 
 <br/>
 
-#### License
-<sup>
-Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
-2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
-</sup>
-<br/>
-<sub>
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
-</sub>
+## Getting help
+**diny** is very much a work in progress and there are many pending design decisions before it can be considered fully implemented and documented, let alone stable. It is intended to only be used for experimentation and design feedback at this point.  In fact, only a limited subset of data structures are currently supported, and won't be available until the project hits v0.1.0.  (This is to enable faster iteration on design changes)  If you're adventurous and would like to provide some feedback, please hit us up with your ideas on [GitHub](https://github.com/dbdeviant/diny).

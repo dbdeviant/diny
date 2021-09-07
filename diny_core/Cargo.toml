@@ -1,0 +1,35 @@
+[package]
+publish = false
+name = "diny_core"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Core functionality of the diny framework"
+documentation = "https://docs.rs/diny_core/"
+repository = "https://github.com/dbdeviant/diny/diny_core"
+keywords = ["diny", "serialization", "async"]
+categories = ["encoding", "asynchronous"]
+readme = "crates-io.md"
+
+[features]
+default = ["std"]
+derive = ["diny_derive"]
+std = []
+alloc = []
+unsafe_speed = []
+
+[dependencies]
+futures = "0.3"
+futures-util = "0.3"
+diny_derive = { version = "0.0.1", path = "../diny_derive", optional = true }
+
+[dev-dependencies]
+diny_derive = { version = "0.0.1", path = "../diny_derive" }
+
+[package.metadata.docs.rs]
+features = ["derive"]
+rustdoc-args = ["--cfg", "docsrs"]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[package.metadata.playground]
+features = ["derive"]
