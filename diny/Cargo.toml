@@ -1,7 +1,6 @@
 [package]
-publish = false
 name = "diny"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "An asynchronous, alloc-free serialization framework"
@@ -20,16 +19,16 @@ unsafe_speed = ["diny_core/unsafe_speed"]
 test         = ["diny_test"]
 
 [dependencies]
-diny_core   = { version = "0.0.1", path = "../diny_core",   default_features = false }
-diny_derive = { version = "0.0.1", path = "../diny_derive", default_features = false, optional = true }
-diny_test   = { version = "0.0.1", path = "../diny_test",   default_features = false, optional = true }
+diny_core   = { version = "0.0.2", path = "../diny_core",   default_features = false }
+diny_derive = { version = "0.0.2", path = "../diny_derive", default_features = false, optional = true }
+diny_test   = { version = "0.0.2", path = "../diny_test",   default_features = false, optional = true }
 
 [dev-dependencies]
 futures = "0.3"
 futures-util = "0.3"
-diny_core   = { version = "0.0.1", path = "../diny_core",   default_features = false }
-diny_derive = { version = "0.0.1", path = "../diny_derive", default_features = false }
-diny_test   = { version = "0.0.1", path = '../diny_test',   default_features = false }
+diny_core   = { version = "0.0.2", path = "../diny_core",   default_features = false }
+diny_derive = { version = "0.0.2", path = "../diny_derive", default_features = false }
+diny_test   = { version = "0.0.2", path = '../diny_test',   default_features = false }
 
 [package.metadata.playground]
 features = ["derive", "test"]

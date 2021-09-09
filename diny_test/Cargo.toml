@@ -1,7 +1,6 @@
 [package]
-publish = false
 name = "diny_test"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Test serializer format for the diny framework"
@@ -21,11 +20,11 @@ unsafe_speed = ["diny/unsafe_speed"]
 [dependencies]
 futures = "0.3"
 futures-util = "0.3"
-diny = { package = "diny_core", version = "0.0.1", path = "../diny_core", default_features = false }
+diny = { package = "diny_core", version = "0.0.2", path = "../diny_core", default_features = false }
 
 [dev-dependencies]
-diny = { package = "diny_core", version = "0.0.1", path = "../diny_core", features = ["derive"] }
-diny_derive = { version = "0.0.1", path = "../diny_derive", default_features = false }
+diny = { package = "diny_core", version = "0.0.2", path = "../diny_core", features = ["derive"] }
+diny_derive = { version = "0.0.2", path = "../diny_derive", default_features = false }
 
 [package.metadata.docs.rs]
 features = ["derive"]

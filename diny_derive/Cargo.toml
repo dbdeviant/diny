@@ -1,7 +1,6 @@
 [package]
-publish = false
 name = "diny_derive"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Derive macros for the diny framework"
