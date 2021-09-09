@@ -1,6 +1,6 @@
 # diny &emsp; [![Build Status]][ci] [![Latest Version]][crates.io] [![Docs]][docs.rs] [![License Info]][license_file]
 
-[Build Status]: https://img.shields.io/github/workflow/status/dbdeviant/diny/CI/main
+[Build Status]: https://img.shields.io/github/workflow/status/dbdeviant/diny/ci/main
 [ci]: https://github.com/dbdeviant/diny/actions?query=branch%3Amain
 [Latest Version]: https://img.shields.io/crates/v/diny
 [crates.io]: https://crates.io/crates/diny
