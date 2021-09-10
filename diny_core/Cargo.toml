@@ -1,6 +1,6 @@
 [package]
 name = "diny_core"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Core functionality of the diny framework"
@@ -20,10 +20,10 @@ unsafe_speed = []
 [dependencies]
 futures = "0.3"
 futures-util = "0.3"
-diny_derive = { version = "0.0.2", path = "../diny_derive", optional = true }
+diny_derive = { version = "0.0.3", path = "../diny_derive", optional = true }
 
 [dev-dependencies]
-diny_derive = { version = "0.0.2", path = "../diny_derive" }
+diny_derive = { version = "0.0.3", path = "../diny_derive" }
 
 [package.metadata.docs.rs]
 features = ["derive"]
