@@ -7,6 +7,7 @@ use crate::backend::{Format, FormatEncode};
 pub trait Encode: Sized {
     /// The concrete [format](FormatEncode) to encode with.
     type Format: FormatEncode;
+    
     /// The concrete data structure to encode.
     type Data;
 

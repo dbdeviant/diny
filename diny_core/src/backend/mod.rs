@@ -4,11 +4,11 @@
 #[doc(hidden)] pub mod encode;
 #[doc(hidden)] pub mod format;
 #[doc(hidden)] pub mod future;
-#[doc(hidden)] pub mod container;
+#[doc(hidden)] pub mod collection;
 #[doc(hidden)] pub mod intrinsic;
 #[doc(hidden)] pub mod primitive;
 #[doc(hidden)] pub mod wrapper;
-/// Internal serialization types.
+/// Types used to support structural serialization
 pub mod internal;
 
 use core::future::Future;
@@ -37,6 +37,7 @@ pub use self::{
 /// Define the [encoder](Encode) to use for serializing the data type.
 pub trait Encodable
 {
+    /// The concrete [encoder](Encode) to use for serialization
     type Encoder<F>: Encode<Data=Self, Format=F>
     where
         F: FormatEncode,
@@ -46,6 +47,7 @@ pub trait Encodable
 /// Define the [decoder](Decode) to use for deserializing the data type.
 pub trait Decodable: Sized
 {
+    /// The concrete [decoder](Decode) to use for deserializaiton
     type Decoder<F>: Decode<Data=Self, Format=F>
     where
         F: FormatDecode,

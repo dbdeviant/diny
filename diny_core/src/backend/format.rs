@@ -8,9 +8,13 @@ use crate::backend::{Decode, Encode, internal::{VariantIdx, SequenceLen}};
 /// errors encountered during [encoding](Encode) and 
 /// [decoding](Decode) operations.
 pub trait Format {
+    /// The type of errors that can occur during serialization and deserialization
     type Error: From<futures::io::Error>;
 
+    /// The error to return when an internal serialization contract has been violated
     fn invalid_input_err() -> Self::Error;
+
+    /// The error to return when a data contract has been violated
     fn invalid_data_err () -> Self::Error;
 }
 

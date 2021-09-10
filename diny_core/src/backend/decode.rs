@@ -10,6 +10,7 @@ use crate::backend::{Format, FormatDecode};
 pub enum DecodeStatus<Dta, Dec> {
     /// The operation has successfully completed [decoding](Decode) the data.
     Ready  (Dta),
+
     /// The operation is [pending](Poll) and the provided [decoder](Decode) can be used
     /// to continue reading.
     Pending(Dec),
@@ -30,6 +31,7 @@ impl<Dta, Dec> DecodeStatus<Dta, Dec> {
 pub trait Decode: Sized {
     /// The concrete [format](FormatDecode) to decode with.
     type Format: FormatDecode;
+    
     /// The concrete data structure to decode.
     type Data;
 
