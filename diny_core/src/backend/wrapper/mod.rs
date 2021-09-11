@@ -10,6 +10,8 @@ pub mod macros;
 }
 
 #[cfg(feature = "std")]
+#[doc(hidden)] pub mod cell;
+#[cfg(feature = "std")]
 #[doc(hidden)] pub mod ref_cell;
 
 #[cfg(feature = "std")]
