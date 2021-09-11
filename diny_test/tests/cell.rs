@@ -7,7 +7,7 @@ use common::*;
 
 #[cfg(feature = "std")]
 #[test]
-fn can_serialize_refcell() {
+fn can_serialize_cell() {
     const LEN: usize = 8;
     test_serialize_exact::<Cell<u64>, LEN>(&Cell::new(u64::MIN));
 }
