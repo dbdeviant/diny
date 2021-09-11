@@ -163,14 +163,13 @@ where
     type Future<'w, F, W>
     where
         Self: 'w,
-        F: 'w + backend::FormatSerialize<'w>,
+        F: 'w + backend::FormatSerialize,
         W: 'w + AsyncWrite + Unpin,
     = backend::SerializeAll<'w, F, W, Self, Self::Encoder<F>>;
 
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
-        Self: 'w,
-        F: backend::FormatSerialize<'w>,
+        F: backend::FormatSerialize,
         W: AsyncWrite + Unpin,
 
     {
@@ -318,13 +317,13 @@ where
 {
     type Future<'r, F, R>
     where
-        F: 'r + backend::FormatDeserialize<'r>,
+        F: 'r + backend::FormatDeserialize,
         R: 'r + AsyncRead + AsyncBufRead + Unpin,
     = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
 
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
-        F: backend::FormatDeserialize<'r>,
+        F: backend::FormatDeserialize,
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())

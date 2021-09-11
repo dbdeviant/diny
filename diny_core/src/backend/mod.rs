@@ -61,7 +61,7 @@ pub trait AsyncSerialize: Encodable
     type Future<'w, F, W>: Future<Output=Result<(), F::Error>> + Unpin
     where
         Self: 'w,
-        F: 'w + FormatSerialize<'w>,
+        F: 'w + FormatSerialize,
         W: 'w + AsyncWrite + Unpin,
     ;
 
@@ -69,7 +69,7 @@ pub trait AsyncSerialize: Encodable
     /// via the provided [asynchronous writer](AsyncWrite).
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
-        F: FormatSerialize<'w>,
+        F: FormatSerialize,
         W: AsyncWrite + Unpin,
     ;
 }
@@ -80,7 +80,7 @@ pub trait AsyncDeserialize: Decodable
     /// The concrete [future](Future) returned by the `deserialize` method.
     type Future<'r, F, R>: Future<Output=Result<Self, F::Error>> + Unpin
     where
-        F: 'r + FormatDeserialize<'r>,
+        F: 'r + FormatDeserialize,
         R: 'r + AsyncRead + AsyncBufRead + Unpin,
     ;
 
@@ -88,7 +88,7 @@ pub trait AsyncDeserialize: Decodable
     /// via the provided [asynchronous reader](AsyncRead).
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
-        F: FormatDeserialize<'r>,
+        F: FormatDeserialize,
         R: AsyncRead + AsyncBufRead + Unpin,
     ;
 }

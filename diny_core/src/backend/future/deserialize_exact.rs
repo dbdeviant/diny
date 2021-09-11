@@ -30,14 +30,14 @@ where
 
 impl<'r, F, R, Dta, Dec> Unpin for DeserializeExact<'r, F, R, Dta, Dec>
 where
-    F: FormatDeserialize<'r>,
+    F: FormatDeserialize,
     R: Unpin,
     Dec: Decode<Format=F, Data=Dta>,
 {}
 
 impl<'r, F, R, Dta, Dec> core::future::Future for DeserializeExact<'r, F, R, Dta, Dec>
 where
-    F: FormatDeserialize<'r>,
+    F: FormatDeserialize,
     R: AsyncRead + AsyncBufRead + Unpin,
     Dec: Decode<Format=F, Data=Dta>,
 {

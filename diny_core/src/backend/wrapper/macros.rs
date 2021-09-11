@@ -64,13 +64,13 @@ macro_rules! wrapper_async_serialize_impl {
             type Future<'w, F, W>
             where
                 Self: 'w,
-                F: 'w + crate::backend::FormatSerialize<'w>,
+                F: 'w + crate::backend::FormatSerialize,
                 W: 'w + ::futures::AsyncWrite + Unpin,
             = backend::SerializeAll<'w, F, W, Self, Self::Encoder<F>>;
         
             fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
             where
-                F: crate::backend::FormatSerialize<'w>,
+                F: crate::backend::FormatSerialize,
                 W: ::futures::AsyncWrite + Unpin,
             {
                 backend::SerializeAll::new(format, writer, self, <Self::Encoder::<F> as backend::Encode>::init(self))
@@ -144,13 +144,13 @@ macro_rules! wrapper_async_deserialize_impl {
         {
             type Future<'r, F, R>
             where
-                F: 'r + backend::FormatDeserialize<'r>,
+                F: 'r + backend::FormatDeserialize,
                 R: 'r + AsyncRead + AsyncBufRead + Unpin,
             = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
         
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
-                F: backend::FormatDeserialize<'r>,
+                F: backend::FormatDeserialize,
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
                 backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())

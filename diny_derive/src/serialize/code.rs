@@ -180,13 +180,13 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
         impl ::diny::backend::AsyncSerialize for __Data {
             type Future<'w, __F, __W>
             where
-                __F: 'w + ::diny::backend::FormatSerialize<'w>,
+                __F: 'w + ::diny::backend::FormatSerialize,
                 __W: 'w + ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 = ::diny::backend::SerializeAll<'w, __F, __W, Self, Self::Encoder<__F>>;
     
             fn serialize<'w, __F, __W>(&'w self, format: &'w __F, writer: &'w mut __W) -> Self::Future<'w, __F, __W>
             where
-                __F: ::diny::backend::FormatSerialize<'w>,
+                __F: ::diny::backend::FormatSerialize,
                 __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
             {
                 ::diny::backend::SerializeAll::new(format, writer, self, #encode_init)
@@ -469,13 +469,13 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
         impl ::diny::backend::AsyncDeserialize for __Data {
             type Future<'r, __F, __R>
             where
-                __F: 'r + ::diny::backend::FormatDeserialize<'r>,
+                __F: 'r + ::diny::backend::FormatDeserialize,
                 __R: 'r + ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
             = ::diny::backend::DeserializeExact<'r, __F, __R, Self, Self::Decoder::<__F>>;
     
             fn deserialize<'r, __F, __R>(format: &'r __F, reader: &'r mut __R) -> Self::Future<'r, __F, __R>
             where
-                __F: ::diny::backend::FormatDeserialize<'r>,
+                __F: ::diny::backend::FormatDeserialize,
                 __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
             {
                 ::diny::backend::DeserializeExact::new(format, reader, #decode_init)
@@ -694,13 +694,13 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
         impl ::diny::backend::AsyncSerialize for __Data {
             type Future<'w, __F, __W>
             where
-                __F: 'w + ::diny::backend::FormatSerialize<'w>,
+                __F: 'w + ::diny::backend::FormatSerialize,
                 __W: 'w + ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 = ::diny::backend::SerializeAll<'w, __F, __W, Self, Self::Encoder<__F>>;
     
             fn serialize<'w, __F, __W>(&'w self, format: &'w __F, writer: &'w mut __W) -> Self::Future<'w, __F, __W>
             where
-                __F: ::diny::backend::FormatSerialize<'w>,
+                __F: ::diny::backend::FormatSerialize,
                 __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
             {
                 ::diny::backend::SerializeAll::new(format, writer, self, #encode_init)
@@ -899,13 +899,13 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
         impl ::diny::backend::AsyncDeserialize for __Data {
             type Future<'r, __F, __R>
             where
-                __F: 'r + ::diny::backend::FormatDeserialize<'r>,
+                __F: 'r + ::diny::backend::FormatDeserialize,
                 __R: 'r + ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
             = ::diny::backend::DeserializeExact<'r, __F, __R, Self, Self::Decoder::<__F>>;
     
             fn deserialize<'r, __F, __R>(format: &'r __F, reader: &'r mut __R) -> Self::Future<'r, __F, __R>
             where
-                __F: ::diny::backend::FormatDeserialize<'r>,
+                __F: ::diny::backend::FormatDeserialize,
                 __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
             {
                 ::diny::backend::DeserializeExact::new(format, reader, #decode_init)

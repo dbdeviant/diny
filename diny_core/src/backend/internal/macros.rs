@@ -48,13 +48,13 @@ macro_rules! usize_wrapper_def {
         impl AsyncSerialize for $t {
             type Future<'w, F, W>
             where
-                F: 'w + FormatSerialize<'w>,
+                F: 'w + FormatSerialize,
                 W: 'w + futures::AsyncWrite + Unpin,
             = F::$ser_fut<'w, W>;
         
             fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
             where
-                F: crate::backend::FormatSerialize<'w>,
+                F: crate::backend::FormatSerialize,
                 W: futures::AsyncWrite + Unpin,
             {
                 F::$ser_fn(format, writer, self)
@@ -71,13 +71,13 @@ macro_rules! usize_wrapper_def {
         impl AsyncDeserialize for $t {
             type Future<'r, F, R>
             where
-                F: 'r + FormatDeserialize<'r>,
+                F: 'r + FormatDeserialize,
                 R: 'r + ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
             = F::$deser_fut<'r, R>;
         
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
-                F: FormatDeserialize<'r>,
+                F: FormatDeserialize,
                 R: ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
             {
                 F::$deser_fn(format, reader)

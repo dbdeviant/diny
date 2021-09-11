@@ -58,13 +58,13 @@ where
     type Future<'w, F, W>
     where
         Self: 'w,
-        F: 'w + crate::backend::FormatSerialize<'w>,
+        F: 'w + crate::backend::FormatSerialize,
         W: 'w + ::futures::AsyncWrite + Unpin,
     = backend::SerializeAll<'w, F, W, Self, Self::Encoder<F>>;
 
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
-        F: crate::backend::FormatSerialize<'w>,
+        F: crate::backend::FormatSerialize,
         W: ::futures::AsyncWrite + Unpin,
     {
         backend::SerializeAll::new(format, writer, self, <Self::Encoder::<F> as backend::Encode>::init(self))

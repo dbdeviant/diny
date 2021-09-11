@@ -38,7 +38,7 @@ pub trait FormatEncode: Format {
 }
 
 /// Define the primitive serialization methods and the concrete [futures](Future) they return.
-pub trait FormatSerialize<'f>: FormatEncode {
+pub trait FormatSerialize: FormatEncode {
     type SerializeUnit<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
     type SerializeBool<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
 
@@ -96,7 +96,7 @@ pub trait FormatDecode: Format {
 } 
 
 /// Define the primitive deserialization methods and the concrete [futures](Future) they return.
-pub trait FormatDeserialize<'f>: FormatDecode {
+pub trait FormatDeserialize: FormatDecode {
     type DeserializeUnit<'r, R>: Future<Output=Result<()  , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
     type DeserializeBool<'r, R>: Future<Output=Result<bool, Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
 

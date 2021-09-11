@@ -17,7 +17,7 @@ where
 
 impl<'w, F, W, Dta, Enc> SerializeAll<'w, F, W, Dta, Enc>
 where
-    F: FormatSerialize<'w>,
+    F: FormatSerialize,
     Enc: Encode<Format=F, Data=Dta>,
 {
     pub fn new(format: &'w F, writer: &'w mut W, data: &'w Dta, encode: Enc) -> Self {
@@ -32,14 +32,14 @@ where
 
 impl<'w, F, W, Dta, Enc> Unpin for SerializeAll<'w, F, W, Dta, Enc>
 where
-    F: FormatSerialize<'w>,
+    F: FormatSerialize,
     W: Unpin,
     Enc: Encode<Format=F, Data=Dta>,
 {}
 
 impl<'w, F, W, Dta, Enc> core::future::Future for SerializeAll<'w, F, W, Dta, Enc>
 where
-    F: FormatSerialize<'w>,
+    F: FormatSerialize,
     W: AsyncWrite + Unpin,
     Enc: Encode<Format=F, Data=Dta>,
 {

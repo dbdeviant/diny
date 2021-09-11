@@ -10,13 +10,13 @@ macro_rules! serialize {
         impl $crate::AsyncSerialize for $t {
             type Future<'w, F, W>
             where
-                F: 'w + $crate::backend::FormatSerialize<'w>,
+                F: 'w + $crate::backend::FormatSerialize,
                 W: 'w + ::futures::AsyncWrite + Unpin,
             = F::$fut<'w, W>;
         
             fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
             where
-                F: $crate::backend::FormatSerialize<'w>,
+                F: $crate::backend::FormatSerialize,
                 W: ::futures::AsyncWrite + Unpin,
             {
                 F::$fun(format, writer, self)
@@ -39,13 +39,13 @@ macro_rules! deserialize {
         {
             type Future<'r, F, R>
             where
-                F: 'r + $crate::backend::FormatDeserialize<'r>,
+                F: 'r + $crate::backend::FormatDeserialize,
                 R: 'r + ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
             = F::$fut<'r, R>;
 
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
-                F: $crate::backend::FormatDeserialize<'r>,
+                F: $crate::backend::FormatDeserialize,
                 R: ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
             {
                 F::$fun(format, reader)

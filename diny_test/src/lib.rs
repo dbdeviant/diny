@@ -54,7 +54,7 @@ impl diny::backend::FormatEncode for Formatter {
     type EncodeSequenceLen = format::sequence_len::Encoder;
 }
 
-impl diny::backend::FormatSerialize<'_> for Formatter
+impl diny::backend::FormatSerialize for Formatter
 {
     type SerializeUnit<'w, W> where W: 'w + AsyncWrite + Unpin = format::unit::SerializeAll<'w, W>;
     type SerializeBool<'w, W> where W: 'w + AsyncWrite + Unpin = format::bool::SerializeAll<'w, W>;
@@ -111,7 +111,7 @@ impl diny::backend::FormatDecode for Formatter {
     type DecodeSequenceLen = format::sequence_len::Decoder;
 }
 
-impl diny::backend::FormatDeserialize<'_> for Formatter
+impl diny::backend::FormatDeserialize for Formatter
 {
     type DeserializeUnit<'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::unit::DeserializeExact<'r, R>;
     type DeserializeBool<'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::bool::DeserializeExact<'r, R>;

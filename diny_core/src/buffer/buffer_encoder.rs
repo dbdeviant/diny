@@ -17,7 +17,7 @@ where
 
 impl<'w, F, W, Dta, Enc> BufferEncoder<'w, F, W, Dta, Enc>
 where
-    F: FormatSerialize<'w>,
+    F: FormatSerialize,
     Enc: BufferEncode<Format=F, Data=Dta>,
 {
     pub fn new(format: &'w F, writer: &'w mut W, encode: Enc) -> Self {
@@ -32,14 +32,14 @@ where
 
 impl<'w, F, W, Dta, Enc> Unpin for BufferEncoder<'w, F, W, Dta, Enc>
 where
-    F: FormatSerialize<'w>,
+    F: FormatSerialize,
     W: Unpin,
     Enc: BufferEncode<Format=F, Data=Dta>,
 {}
 
 impl<'w, F, W, Dta, Enc> core::future::Future for BufferEncoder<'w, F, W, Dta, Enc>
 where
-    F: FormatSerialize<'w>,
+    F: FormatSerialize,
     W: AsyncWrite + Unpin,
     Enc: BufferEncode<Format=F, Data=Dta>,
 {
