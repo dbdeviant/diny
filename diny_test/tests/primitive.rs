@@ -1,17 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
 mod common;
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-extern crate alloc;
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::boxed::Box;
-
 use common::*;
-
 
 #[test]
 fn can_serialize_unit() {
@@ -108,11 +101,4 @@ fn can_serialize_i64() {
     test_serialize_exact::<i64, LEN>(&-1);
     test_serialize_exact::<i64, LEN>(&0);
     test_serialize_exact::<i64, LEN>(&1);
-}
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-#[test]
-fn can_serialize_box() {
-    const LEN: usize = 8;
-    test_serialize_exact::<Box<u64>, LEN>(&Box::new(u64::MIN));
 }
