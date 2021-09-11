@@ -1,5 +1,7 @@
 #[macro_use]
-pub mod macros;
+mod macros;
+
+#[doc(hidden)] pub mod phantom_data;
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 #[doc(hidden)] pub mod r#box {
