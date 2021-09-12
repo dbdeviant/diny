@@ -47,7 +47,7 @@ pub trait Encodable
 /// Define the [decoder](Decode) to use for deserializing the data type.
 pub trait Decodable: Sized
 {
-    /// The concrete [decoder](Decode) to use for deserializaiton
+    /// The concrete [decoder](Decode) to use for deserialization
     type Decoder<F>: Decode<Data=Self, Format=F>
     where
         F: FormatDecode,
@@ -65,7 +65,7 @@ pub trait AsyncSerialize: Encodable
         W: 'w + AsyncWrite + Unpin,
     ;
 
-    /// Attempt to serialize the type asynchronusly for the indicated [format](Format)
+    /// Attempt to serialize the type asynchronously for the indicated [format](Format)
     /// via the provided [asynchronous writer](AsyncWrite).
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
@@ -84,7 +84,7 @@ pub trait AsyncDeserialize: Decodable
         R: 'r + AsyncRead + AsyncBufRead + Unpin,
     ;
 
-    /// Attempt to deserialize the type asynchronusly for the indicated [format](Format)
+    /// Attempt to deserialize the type asynchronously for the indicated [format](Format)
     /// via the provided [asynchronous reader](AsyncRead).
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
