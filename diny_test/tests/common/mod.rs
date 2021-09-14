@@ -38,14 +38,22 @@ pub fn test_serialize_exact<T, const LEN: usize>(send: &T)
 where
     T: diny::AsyncSerialize + diny::AsyncDeserialize + core::fmt::Debug + PartialEq,
 {
-    let len = test_serialize_slice(send, &mut [0u8; LEN]);
+    let len = test_serialize_slice(send, &mut [0u8; LEN], true);
     assert_eq!(len, LEN);
 
     #[cfg(feature = "std")]
     test_serialize_pin_hole(send);
 }
 
-fn test_serialize_slice<T>(send: &T, buf: &mut [u8]) -> usize
+#[allow(unused)]
+pub fn test_serialize_exact_with_error<T, const LEN: usize>(send: &T)
+where
+    T: diny::AsyncSerialize + diny::AsyncDeserialize + core::fmt::Debug + PartialEq,
+{
+    let _ = test_serialize_slice(send, &mut [0u8; LEN], false);
+}
+
+fn test_serialize_slice<T>(send: &T, buf: &mut [u8], expect_success: bool) -> usize
 where
     T: diny::AsyncSerialize + diny::AsyncDeserialize + core::fmt::Debug + PartialEq,
 {
@@ -55,18 +63,23 @@ where
     let write = send.serialize(fmt, &mut tx);
 
     let write_result = block_on(write);
-    write_result.as_ref().expect("unable to serialize via slice");
-    let bytes_written = tx.bytes_written();
+    if !expect_success {
+        write_result.as_ref().expect_err("unexpected success");
+        0
+    } else {
+        write_result.as_ref().expect("unable to serialize via slice");
+        let bytes_written = tx.bytes_written();
 
-    let mut rx: AsyncSliceReader = tx.as_written().into();
-    let read = <T as diny::AsyncDeserialize>::deserialize(fmt, &mut rx);
+        let mut rx: AsyncSliceReader = tx.as_written().into();
+        let read = <T as diny::AsyncDeserialize>::deserialize(fmt, &mut rx);
 
-    let read_result = block_on(read);
-    read_result.as_ref().expect("unable to deserialize via slice");
-    assert_eq!(rx.bytes_read(), bytes_written);
-    assert_eq!(read_result.unwrap(), *send);
+        let read_result = block_on(read);
+        read_result.as_ref().expect("unable to deserialize via slice");
+        assert_eq!(rx.bytes_read(), bytes_written);
+        assert_eq!(read_result.unwrap(), *send);
 
-    bytes_written
+        bytes_written
+    }
 }
 
 #[cfg(any(feature = "std", feature = "alloc"))]

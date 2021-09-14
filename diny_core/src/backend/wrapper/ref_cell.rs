@@ -5,7 +5,6 @@ use crate::{backend, AsyncSerialize};
 
 type Data<T> = ::std::cell::RefCell<T>;
 
-wrapper_encode_def!();
 wrapper_encodable_impl!();
 wrapper_async_serialize_impl!();
 
@@ -14,6 +13,12 @@ wrapper_decode_impl!();
 wrapper_decodable_impl!();
 wrapper_async_deserialize_impl!();        
 
+
+pub struct Encode<F, T>(Option<T::Encoder::<F>>, PhantomData<F>)
+where
+    F: backend::FormatEncode,
+    T: backend::Encodable,
+;
 
 impl<F, T> backend::Encode for Encode<F, T>
 where
@@ -24,21 +29,34 @@ where
     type Data = Data<T>;
 
     fn init(data: &Self::Data) -> Self {
-        Self(T::Encoder::<F>::init(&data.borrow()), PhantomData)
+        match data.try_borrow() {
+            Ok(ref d) => Self(Some(T::Encoder::<F>::init(d)), PhantomData),
+            Err(_)    => Self(None, PhantomData),
+        }
     }
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <<Self as backend::Encode>::Format as backend::Format>::Error>
     where
         W: futures::AsyncWrite + Unpin,
     {
-        T::Encoder::<F>::start_encode(format, writer, &data.borrow(), cx)
-        .map(|o| o.map(|s| Self(s, PhantomData)))
+        match &data.try_borrow() {
+            Ok(ref d) => 
+                T::Encoder::<F>::start_encode(format, writer, d, cx)
+                .map(|o| o.map(|s| Self(Some(s), PhantomData))),
+            Err(_) => Err(<Self as backend::Encode>::Format::invalid_input_err()),
+        }
     }
 
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
     where
         W: futures::AsyncWrite + Unpin,
     {
-         self.0.poll_encode(format, writer, &data.borrow(), cx)
+        Poll::Ready(match &data.try_borrow() {
+            Ok(ref d) => match &mut self.0 {
+                Some(e) => futures::ready!(e.poll_encode(format, writer, d, cx)),
+                None    => Err(<Self as backend::Encode>::Format::invalid_input_err()),
+            },
+            Err(_) => Err(<Self as backend::Encode>::Format::invalid_input_err()),
+        })
     }
 }
