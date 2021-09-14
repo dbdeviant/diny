@@ -1,7 +1,7 @@
 
 macro_rules! wrapper_encode_def {
     () => {
-        pub struct Encode<F, T>(T::Encoder::<F>, PhantomData<F>)
+        pub struct Encode<F, T>(T::Encoder::<F>)
         where
             F: backend::FormatEncode,
             T: backend::Encodable,
@@ -20,7 +20,7 @@ macro_rules! wrapper_encode_impl_deref {
             type Data = Data<T>;
         
             fn init(data: &Self::Data) -> Self {
-                Self(T::Encoder::<F>::init(data), PhantomData)
+                Self(T::Encoder::<F>::init(data))
             }
         
             fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <<Self as backend::Encode>::Format as backend::Format>::Error>
@@ -28,7 +28,7 @@ macro_rules! wrapper_encode_impl_deref {
                 W: futures::AsyncWrite + Unpin,
             {
                 T::Encoder::<F>::start_encode(format, writer, data, cx)
-                .map(|o| o.map(|s| Self(s, PhantomData)))
+                .map(|o| o.map(Self))
             }
         
             fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>

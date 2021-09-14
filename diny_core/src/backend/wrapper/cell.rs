@@ -22,7 +22,7 @@ where
     type Data = Data<T>;
 
     fn init(data: &Self::Data) -> Self {
-        Self(T::Encoder::<F>::init(&data.get()), PhantomData)
+        Self(T::Encoder::<F>::init(&data.get()))
     }
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <<Self as backend::Encode>::Format as backend::Format>::Error>
@@ -30,7 +30,7 @@ where
         W: futures::AsyncWrite + Unpin,
     {
         T::Encoder::<F>::start_encode(format, writer, &data.get(), cx)
-        .map(|o| o.map(|s| Self(s, PhantomData)))
+        .map(|o| o.map(Self))
     }
 
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>

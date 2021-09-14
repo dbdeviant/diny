@@ -14,7 +14,7 @@ wrapper_decodable_impl!();
 wrapper_async_deserialize_impl!();        
 
 
-pub struct Encode<F, T>(Option<T::Encoder::<F>>, PhantomData<F>)
+pub struct Encode<F, T>(Option<T::Encoder::<F>>)
 where
     F: backend::FormatEncode,
     T: backend::Encodable,
@@ -30,8 +30,8 @@ where
 
     fn init(data: &Self::Data) -> Self {
         match data.try_borrow() {
-            Ok(ref d) => Self(Some(T::Encoder::<F>::init(d)), PhantomData),
-            Err(_)    => Self(None, PhantomData),
+            Ok(ref d) => Self(Some(T::Encoder::<F>::init(d))),
+            Err(_)    => Self(None),
         }
     }
 
@@ -42,7 +42,7 @@ where
         match &data.try_borrow() {
             Ok(ref d) => 
                 T::Encoder::<F>::start_encode(format, writer, d, cx)
-                .map(|o| o.map(|s| Self(Some(s), PhantomData))),
+                .map(|o| o.map(|s| Self(Some(s)))),
             Err(_) => Err(<Self as backend::Encode>::Format::invalid_input_err()),
         }
     }
