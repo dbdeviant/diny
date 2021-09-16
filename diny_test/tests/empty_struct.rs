@@ -5,7 +5,7 @@
 
 mod common;
 
-use common::*;
+use common::method::eq::*;
 use common::empty_struct::*;
 
 

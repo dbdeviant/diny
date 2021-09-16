@@ -93,3 +93,61 @@ mod linked_list {
 
     seq_collection_def!(LinkedList<T>);
 }
+
+#[cfg(feature = "std")]
+mod binary_heap {
+    use std::collections::BinaryHeap;
+    use super::CollectionApi;
+    
+    impl<T> CollectionApi<T> for BinaryHeap<T>
+    where
+        T: Ord,
+    {
+        type Iter<'a>
+        where
+            T: 'a,
+        = std::iter::Skip<std::collections::binary_heap::Iter<'a, T>>;
+
+        fn reserve(&mut self, _len: usize) {
+        }
+
+        fn append(&mut self, t: T) {
+            self.push(t);
+        }
+
+        fn iter_from(&self, idx: usize) -> Self::Iter<'_> {
+            self.iter().skip(idx)
+        }
+    }
+
+    seq_collection_def!(BinaryHeap<T: Ord>);
+}
+
+#[cfg(feature = "std")]
+mod btree_set {
+    use std::collections::{btree_set, BTreeSet};
+    use super::CollectionApi;
+    
+    impl<T> CollectionApi<T> for BTreeSet<T>
+    where
+        T: Ord,
+    {
+        type Iter<'a>
+        where
+            T: 'a,
+        = std::iter::Skip<btree_set::Iter<'a, T>>;
+
+        fn reserve(&mut self, _len: usize) {
+        }
+
+        fn append(&mut self, t: T) {
+            self.insert(t);
+        }
+
+        fn iter_from(&self, idx: usize) -> Self::Iter<'_> {
+            self.iter().skip(idx)
+        }
+    }
+
+    seq_collection_def!(BTreeSet<T: Ord>);
+}

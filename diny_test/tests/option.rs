@@ -5,7 +5,8 @@
 
 mod common;
 
-use common::*;
+use common::VAR_IDX_LEN;
+use common::method::eq::*;
 use common::my_enum::*;
 use common::my_rec::*;
 

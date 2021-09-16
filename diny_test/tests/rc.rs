@@ -3,7 +3,7 @@
 mod common;
 
 use std::rc::Rc;
-use common::*;
+use common::method::eq::*;
 
 #[cfg(feature = "std")]
 #[test]

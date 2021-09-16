@@ -1,11 +1,11 @@
 macro_rules! seq_collection_def {
-    ($t: ty) => {
+    ($t: ident < T $(: $bound: ident)? >) => {
         use core::task::{Context, Poll};
         use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
         use crate::backend::{self, Encode as _, Decode as _, internal::SequenceLen};
 
 
-        type Data<T> = $t;
+        type Data<T> = $t<T>;
 
         type Len = usize;
         type Idx = usize;
@@ -21,7 +21,7 @@ macro_rules! seq_collection_def {
             Fini,
         }
 
-        impl<F, T> Encode<F, T>
+        impl<F, T $(: $bound)*> Encode<F, T>
         where
             F: backend::FormatEncode,
             T: backend::Encodable,
@@ -69,7 +69,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<F, T> backend::Encode for Encode<F, T>
+        impl<F, T $(: $bound)*> backend::Encode for Encode<F, T>
         where
             F: backend::FormatEncode,
             T: backend::Encodable,
@@ -133,14 +133,14 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<T> backend::Encodable for Data<T>
+        impl<T $(: $bound)*> backend::Encodable for Data<T>
         where
             T: backend::Encodable,
         {
             type Encoder<F: backend::FormatEncode> = Encode<F, T>;
         }
 
-        impl<T> backend::AsyncSerialize for Data<T>
+        impl<T $(: $bound)*> backend::AsyncSerialize for Data<T>
         where
             T: backend::Encodable,
         {
@@ -161,9 +161,9 @@ macro_rules! seq_collection_def {
             }
         }
 
-        struct PartialData<T>(Data<T>);
+        struct PartialData<T $(: $bound)*>(Data<T>);
 
-        impl<T> PartialData<T> {
+        impl<T $(: $bound)*> PartialData<T> {
             pub fn new() -> Self {
                 Self(Data::<T>::new())
             }
@@ -173,7 +173,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<T> core::ops::Deref for PartialData<T> {
+        impl<T $(: $bound)*> core::ops::Deref for PartialData<T> {
             type Target = Data<T>;
 
             fn deref(&self) -> &Self::Target {
@@ -181,7 +181,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<T> core::ops::DerefMut for PartialData<T> {
+        impl<T $(: $bound)*> core::ops::DerefMut for PartialData<T> {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.0
             }
@@ -198,7 +198,7 @@ macro_rules! seq_collection_def {
             Fini,
         }
 
-        struct DecodeState<F, T>
+        struct DecodeState<F, T $(: $bound)*>
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -207,7 +207,7 @@ macro_rules! seq_collection_def {
             cursor: DecodeCursor<F, T>,
         }
 
-        impl<F, T> DecodeState<F, T>
+        impl<F, T $(: $bound)*> DecodeState<F, T>
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -220,7 +220,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<F, T> DecodeCursor<F, T>
+        impl<F, T $(: $bound)*> DecodeCursor<F, T>
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -262,7 +262,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        pub struct Decode<F, T>
+        pub struct Decode<F, T $(: $bound)*>
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -270,7 +270,7 @@ macro_rules! seq_collection_def {
             state: Option<DecodeState<F, T>>,
         }
 
-        impl<F, T> backend::Decode for Decode<F, T>
+        impl<F, T $(: $bound)*> backend::Decode for Decode<F, T>
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -349,14 +349,14 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<T> backend::Decodable for Data<T>
+        impl<T $(: $bound)*> backend::Decodable for Data<T>
         where
             T: backend::Decodable,
         {
             type Decoder<F: backend::FormatDecode> = Decode<F, T>;
         }
 
-        impl<T> backend::AsyncDeserialize for Data<T>
+        impl<T $(: $bound)*> backend::AsyncDeserialize for Data<T>
         where
             T: backend::Decodable,
         {

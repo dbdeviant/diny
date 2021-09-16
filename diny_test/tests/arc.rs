@@ -3,7 +3,7 @@
 mod common;
 
 use std::sync::Arc;
-use common::*;
+use common::method::eq::*;
 
 #[cfg(feature = "std")]
 #[test]

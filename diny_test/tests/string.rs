@@ -13,7 +13,8 @@ mod test {
     #[cfg(all(not(feature = "std"), feature = "alloc"))]
     use alloc::string::String;
 
-    use super::common::*;
+    use super::common::SEQ_LEN;
+    use super::common::method::eq::*;
 
     #[test]
     fn can_serialize_empty_string() {

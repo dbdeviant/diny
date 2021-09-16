@@ -3,7 +3,7 @@
 mod common;
 
 use core::marker::PhantomData;
-use common::*;
+use common::method::eq::*;
 
 #[test]
 fn can_serialize_phantom_data() {

@@ -7,7 +7,8 @@ mod common;
 
 #[cfg(feature = "std")]
 mod test {
-    use super::common::*;
+    use super::common::SEQ_LEN;
+    use super::common::method::eq::*;
     use std::collections::VecDeque;
     
     #[test]

@@ -14,7 +14,8 @@ mod test {
     #[cfg(all(not(feature = "std"), feature = "alloc"))]
     use alloc::vec::Vec;
 
-    use super::common::*;
+    use super::common::SEQ_LEN;
+    use super::common::method::eq::*;
     use super::common::my_enum::*;
     use super::common::my_rec::*;
     

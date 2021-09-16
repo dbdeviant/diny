@@ -3,7 +3,7 @@
 mod common;
 
 use std::cell::Cell;
-use common::*;
+use common::method::eq::*;
 
 #[cfg(feature = "std")]
 #[test]

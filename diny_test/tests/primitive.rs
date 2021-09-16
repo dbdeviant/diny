@@ -4,7 +4,7 @@
 
 mod common;
 
-use common::*;
+use common::method::eq::*;
 
 #[test]
 fn can_serialize_unit() {

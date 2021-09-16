@@ -7,7 +7,7 @@ extern crate alloc;
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::boxed::Box;
 
-use common::*;
+use common::method::eq::*;
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 #[test]
