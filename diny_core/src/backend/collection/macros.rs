@@ -1,33 +1,41 @@
+//   $($s: $s_bound $(+ $s_bounds)*,)?
+//  $($s: $s_bound $(+ $s_bounds)*,)?
+
 macro_rules! seq_collection_def {
-    ($t: ident < T $(: $bound: ident)? >) => {
+    ($t: ident < T $(: $t_bound: ident $(+ $t_bounds: ident)*)? $(, $s: ident: $s_bound: ident $(+ $s_bounds: ident)*)? >) => {
+        #[allow(unused)]
+        use core::marker::PhantomData;
         use core::task::{Context, Poll};
         use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
         use crate::backend::{self, Encode as _, Decode as _, internal::SequenceLen};
 
 
-        type Data<T> = $t<T>;
+        type Data<T $(, $s)?> = $t<T $(, $s)?>;
 
         type Len = usize;
         type Idx = usize;
 
-        pub enum Encode<F, T>
+        pub enum Encode<F, T $(, $s)?>
         where
             F: backend::FormatEncode,
-            T: backend::Encodable,
+            T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
             Init,
             Len(SequenceLen, <SequenceLen as backend::Encodable>::Encoder<F>),
             Cur(Len, Idx, <T as backend::Encodable>::Encoder<F>),
             Fini,
+            $(#[allow(dead_code)] Phantom(PhantomData<* const $s>))?
         }
 
-        impl<F, T $(: $bound)*> Encode<F, T>
+        impl<F, T $(, $s)?> Encode<F, T $(, $s)?>
         where
             F: backend::FormatEncode,
-            T: backend::Encodable,
+            T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
             #[allow(clippy::ptr_arg)]
-            fn after_init<W>(format: &F, writer: &mut W, data: &Data<T>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_init<W>(format: &F, writer: &mut W, data: &Data<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
             where
                 W: AsyncWrite + Unpin,
             {
@@ -42,11 +50,11 @@ macro_rules! seq_collection_def {
             }
 
             #[allow(clippy::ptr_arg)]
-            fn after_len<W>(format: &F, writer: &mut W, len: Len, data: &Data<T>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_len<W>(format: &F, writer: &mut W, len: Len, data: &Data<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
             where
                 W: AsyncWrite + Unpin,
             {
-                Self::items_from(format, writer, len, 0, <Data<T> as CollectionApi<T>>::iter_from(data, 0), cx)
+                Self::items_from(format, writer, len, 0, <Data<T $(, $s)?> as CollectionApi<T>>::iter_from(data, 0), cx)
             }
                 
             fn items_from<'a, W, I>(format: &F, writer: &mut W, len: usize, idx: usize, iter: I, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
@@ -69,12 +77,13 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<F, T $(: $bound)*> backend::Encode for Encode<F, T>
+        impl<F, T $(, $s)?> backend::Encode for Encode<F, T $(, $s)?>
         where
             F: backend::FormatEncode,
-            T: backend::Encodable,
+            T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            type Data = Data<T>;
+            type Data = Data<T $(, $s)?>;
             type Format = F;
 
             fn init(_data: &Self::Data) -> Self {
@@ -105,16 +114,14 @@ macro_rules! seq_collection_def {
                         .and_then(|_| Self::after_len(format, writer, **len, data, cx))
                     }
                     Self::Cur(len, idx, enc) => {
-                        let mut iter = <Data<T> as CollectionApi<T>>::iter_from(data, *idx);
+                        let mut iter = <Self::Data as CollectionApi<T>>::iter_from(data, *idx);
                         match iter.next() {
                             Some(d) => futures::ready!(enc.poll_encode(format, writer, d, cx))
                                        .and_then(|_| Self::items_from(format, writer, *len, *idx + 1, iter, cx)),
                             None    => Err(F::invalid_input_err())
                         }                        
                     }
-                    Self::Fini => {
-                        Err(F::invalid_input_err())
-                    }
+                    _ => Err(F::invalid_input_err())
                 };
 
                 match res {
@@ -133,16 +140,18 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<T $(: $bound)*> backend::Encodable for Data<T>
+        impl<T $(, $s)?> backend::Encodable for Data<T $(, $s)?>
         where
-            T: backend::Encodable,
+            T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            type Encoder<F: backend::FormatEncode> = Encode<F, T>;
+            type Encoder<F: backend::FormatEncode> = Encode<F, T $(, $s)?>;
         }
 
-        impl<T $(: $bound)*> backend::AsyncSerialize for Data<T>
+        impl<T $(, $s)?> backend::AsyncSerialize for Data<T $(, $s)?>
         where
-            T: backend::Encodable,
+            T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
             type Future<'w, F, W>
             where
@@ -161,56 +170,61 @@ macro_rules! seq_collection_def {
             }
         }
 
-        struct PartialData<T $(: $bound)*>(Data<T>);
+        struct PartialData<T $(, $s)?>(Data<T $(, $s)?>);
 
-        impl<T $(: $bound)*> PartialData<T> {
+        impl<T $(: $t_bound $(+ $t_bounds)*)? $(, $s: $s_bound $(+ $s_bounds)*)?> PartialData<T $(, $s)?>
+        {
             pub fn new() -> Self {
-                Self(Data::<T>::new())
+                Self(<Data::<T $(, $s)?> as CollectionApi<T>>::new())
             }
 
-            pub fn into_data(self) -> Data<T> {
+            pub fn into_data(self) -> Data<T $(, $s)?> {
                 self.0
             }
         }
 
-        impl<T $(: $bound)*> core::ops::Deref for PartialData<T> {
-            type Target = Data<T>;
+        impl<T $(, $s)?> core::ops::Deref for PartialData<T $(, $s)?> {
+            type Target = Data<T $(, $s)?>;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
             }
         }
 
-        impl<T $(: $bound)*> core::ops::DerefMut for PartialData<T> {
+        impl<T $(, $s)?> core::ops::DerefMut for PartialData<T $(, $s)?> {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.0
             }
         }
 
-        enum DecodeCursor<F, T>
+        enum DecodeCursor<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
             Init,
             Len(<SequenceLen as backend::Decodable>::Decoder<F>),
             Cur(Len, Idx, <T as backend::Decodable>::Decoder<F>),
             Fini,
+            $(#[allow(dead_code)] Phantom(PhantomData<* const $s>))?
         }
 
-        struct DecodeState<F, T $(: $bound)*>
+        struct DecodeState<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            data: PartialData<T>,
-            cursor: DecodeCursor<F, T>,
+            data: PartialData<T $(, $s)?>,
+            cursor: DecodeCursor<F, T $(, $s)?>,
         }
 
-        impl<F, T $(: $bound)*> DecodeState<F, T>
+        impl<F, T $(, $s)?> DecodeState<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
             pub fn new() -> Self {
                 Self {
@@ -220,12 +234,13 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<F, T $(: $bound)*> DecodeCursor<F, T>
+        impl<F, T $(, $s)?> DecodeCursor<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
@@ -236,22 +251,22 @@ macro_rules! seq_collection_def {
                 })
             }
 
-            fn after_len<R>(format: &F, reader: &mut R, len: Len, data: &mut PartialData<T>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_len<R>(format: &F, reader: &mut R, len: Len, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
-                <Data<T> as CollectionApi<T>>::reserve(data, len);
+                <Data<T $(, $s)?> as CollectionApi<T>>::reserve(data, len);
                 Self::items_from(format, reader, len, 0, data, cx)
             }
 
-            fn items_from<R>(format: &F, reader: &mut R, len: Len, idx: Idx, data: &mut PartialData<T>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn items_from<R>(format: &F, reader: &mut R, len: Len, idx: Idx, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
                 for i in idx..len {
                     match <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx) {
                         Ok(status) => match status {
-                            backend::DecodeStatus::Ready(d) => { <Data<T> as CollectionApi<T>>::append(data, d); continue },
+                            backend::DecodeStatus::Ready(d) => { <Data<T $(, $s)?> as CollectionApi<T>>::append(data, d); continue },
                             backend::DecodeStatus::Pending(p) => return Ok(Self::Cur(len, i, p)),
                         },
                         Err(e) => return Err(e),
@@ -262,20 +277,22 @@ macro_rules! seq_collection_def {
             }
         }
 
-        pub struct Decode<F, T $(: $bound)*>
+        pub struct Decode<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            state: Option<DecodeState<F, T>>,
+            state: Option<DecodeState<F, T $(, $s)?>>,
         }
 
-        impl<F, T $(: $bound)*> backend::Decode for Decode<F, T>
+        impl<F, T $(, $s)?> backend::Decode for Decode<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            type Data = Data<T>;
+            type Data = Data<T $(, $s)?>;
             type Format = F;
 
             fn init() -> Self {
@@ -315,13 +332,11 @@ macro_rules! seq_collection_def {
                             DecodeCursor::Cur(len, idx, dec) => {
                                 futures::ready!(dec.poll_decode(format, reader, cx))
                                 .and_then(|d| {
-                                    <Data<T> as CollectionApi<T>>::append(data, d);
+                                    <Self::Data as CollectionApi<T>>::append(data, d);
                                     DecodeCursor::items_from(format, reader, *len, *idx + 1, data, cx)
                                 })
                             }
-                            DecodeCursor::Fini => {
-                                Err(F::invalid_input_err())
-                            }
+                            _ => Err(F::invalid_input_err())
                         };
 
                         match res {
@@ -349,16 +364,18 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<T $(: $bound)*> backend::Decodable for Data<T>
+        impl<T $(, $s)?> backend::Decodable for Data<T $(, $s)?>
         where
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            type Decoder<F: backend::FormatDecode> = Decode<F, T>;
+            type Decoder<F: backend::FormatDecode> = Decode<F, T $(, $s)?>;
         }
 
-        impl<T $(: $bound)*> backend::AsyncDeserialize for Data<T>
+        impl<T $(, $s)?> backend::AsyncDeserialize for Data<T $(, $s)?>
         where
-            T: backend::Decodable,
+            T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
+            $($s: $s_bound $(+ $s_bounds)*,)?
         {
             type Future<'r, F, R>
             where

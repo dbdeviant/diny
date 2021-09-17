@@ -1,5 +1,6 @@
 pub mod eq;
 pub mod ord;
+pub mod set;
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 extern crate alloc;
