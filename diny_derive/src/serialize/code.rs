@@ -99,7 +99,7 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
                 type Data = __Data;
                 type Format = __F;
         
-                fn init(data: &Self::Data) -> Self {
+                fn init(_data: &Self::Data) -> Self {
                     Self::Init
                 }
 
@@ -274,13 +274,13 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
 
             let next = &field.next_method.as_ref().map_or_else(
                 ||  quote! { ::core::result::Result::Ok(__DecodeCursor::<__F>::Fini) },
-                |n| quote! { __DecodeCursor::#n(format, reader, &mut state.data, cx) },
+                |n| quote! { __DecodeCursor::#n(format, reader, state.data.as_mut().unwrap(), cx) },
             );
 
             quote! {
                 __DecodeCursor::#ctor(dec) => {
                     ::futures::ready!(dec.poll_decode(format, reader, cx))
-                    .and_then(|d| { state.data.#field_name = ::core::option::Option::Some(d); #next })
+                    .and_then(|d| { state.data.as_mut().unwrap().#field_name = ::core::option::Option::Some(d); #next })
                 }
             }
         });
@@ -300,7 +300,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                     }
                 }
 
-                pub fn into_data(&self) -> ::core::option::Option<__Data> {
+                pub fn into_data(self) -> ::core::option::Option<__Data> {
                     ::core::option::Option::Some(__Data {
                         #(#partial_field_assignments,)*
                     })
@@ -327,7 +327,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             where
                 __F: ::diny::backend::FormatDecode,
             {
-                data: __PartialData,
+                data: ::core::option::Option<__PartialData>,
                 cursor: __DecodeCursor<__F>,
             }
 
@@ -337,7 +337,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             {
                 pub fn new() -> Self {
                     Self {
-                        data: __PartialData::new(),
+                        data: ::core::option::Option::Some(__PartialData::new()),
                         cursor: __DecodeCursor::Init,
                     }
                 }
@@ -385,7 +385,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                                 ::core::option::Option::Some(d) => ::core::result::Result::Ok(::diny::backend::DecodeStatus::Ready(d)),
                             }
                         },
-                        _  => ::core::result::Result::Ok(::diny::backend::DecodeStatus::Pending(Self { state: ::core::option::Option::Some(__DecodeState{ data, cursor }) })),
+                        _  => ::core::result::Result::Ok(::diny::backend::DecodeStatus::Pending(Self { state: ::core::option::Option::Some(__DecodeState{ data: ::core::option::Option::Some(data), cursor }) })),
                     })
                 }
 
@@ -399,7 +399,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                         ::core::option::Option::Some(state) => {
                             let res = match &mut state.cursor {
                                 __DecodeCursor::Init => {
-                                    __DecodeCursor::<__F>::after_init(format, reader, &mut state.data, cx)
+                                    __DecodeCursor::<__F>::after_init(format, reader, state.data.as_mut().unwrap(), cx)
                                 }
                                 #(#transitions)*
                                 __DecodeCursor::Fini => {
@@ -412,7 +412,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                                     state.cursor = dec;
                                     match state.cursor {
                                         __DecodeCursor::Fini => {
-                                            let ret = state.data.into_data();
+                                            let ret = state.data.take().and_then(|d| d.into_data());
                                             match ret {
                                                 ::core::option::Option::None    => ::core::task::Poll::Ready(::core::result::Result::Err(__F::invalid_data_err())), // Should be unreachable!()
                                                 ::core::option::Option::Some(d) => ::core::task::Poll::Ready(::core::result::Result::Ok(d)),
@@ -606,7 +606,7 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
                 type Data = __Data;
                 type Format = __F;
         
-                fn init(data: &Self::Data) -> Self {
+                fn init(_data: &Self::Data) -> Self {
                     Self::Init
                 }
 
