@@ -36,7 +36,6 @@
 //! # #![feature(generic_associated_types)]
 //! # extern crate futures;
 //! # extern crate diny_core;
-//! # extern crate diny_derive;
 //! # extern crate diny_test;
 //! #
 //! use futures::executor::block_on;

@@ -12,7 +12,7 @@ readme = "crates-io.md"
 
 [features]
 default      = ["std"]
-derive       = ["diny_derive"]
+derive       = ["diny_core/derive"]
 std          = ["diny_core/std"]
 alloc        = ["diny_core/alloc"]
 unsafe_speed = ["diny_core/unsafe_speed"]
@@ -20,14 +20,12 @@ test         = ["diny_test"]
 
 [dependencies]
 diny_core   = { version = "0.0.3", path = "../diny_core",   default_features = false }
-diny_derive = { version = "0.0.3", path = "../diny_derive", default_features = false, optional = true }
 diny_test   = { version = "0.0.3", path = "../diny_test",   default_features = false, optional = true }
 
 [dev-dependencies]
 futures = "0.3"
 futures-util = "0.3"
 diny_core   = { version = "0.0.3", path = "../diny_core",   default_features = false }
-diny_derive = { version = "0.0.3", path = "../diny_derive", default_features = false }
 diny_test   = { version = "0.0.3", path = '../diny_test',   default_features = false }
 criterion = "0.3"
 
