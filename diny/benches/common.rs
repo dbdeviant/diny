@@ -21,7 +21,7 @@ pub fn de_bench<T>(b: &mut Bencher<WallTime>, t: &T)
 where
     T: diny::AsyncSerialization,
 {
-    let mut buf = [0u8; 128];
+    let mut buf = [0u8; 16 * 1024];
     let format = diny_test::format();
     let mut writer = diny::util::AsyncSliceWriter::from(&mut buf[..]);
     let write = t.serialize(&format, &mut writer);
