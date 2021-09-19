@@ -20,8 +20,8 @@
 //!
 //! ```toml
 //! [dependencies]
-//! diny = { version = "0.0.3", features = ["derive"] }
-//! diny_test = "0.0.3"
+//! diny = { version = "0.1", features = ["derive"] }
+//! diny_test = "0.1"
 //! ```
 //!
 //! Add GAT support to your project's main file (e.g. main.rs, lib.rs):
