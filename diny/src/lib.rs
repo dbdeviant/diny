@@ -75,13 +75,13 @@
 //! the `derive` proc macros are _not_ built by default, and need to be enabled to
 //! become available.
 //!
-//! | Feature        | Description                                                         | Default                                   |
-//! |----------------|---------------------------------------------------------------------|:-----------------------------------------:|
-//! | `derive`       | Support for deriving [AsyncSerialize] and [AsyncDeserialize] traits | <sub><sup>&#10060;<sup/><sub/>            |
-//! | `unsafe_speed` | Permit using unsafe code to improve performance                     | <sub><sup>&#10060;<sup/><sub/>            |
-//! | `std`          | Support for Rust's standard library                                 | <span style="color:green">&#10004;<span/> |
-//! | `alloc`        | Support for memory allocation without full `std` support            | <sub><sup>&#10060;<sup/><sub/>            |
-//! | `test`         | Build the diny_test formatter and re-export it to diny::test        | <sub><sup>&#10060;<sup/><sub/>            |
+//! | Feature        | Description                                                         | Default                       |
+//! |----------------|---------------------------------------------------------------------|:-----------------------------:|
+//! | `derive`       | Support for deriving [AsyncSerialize] and [AsyncDeserialize] traits | <font size="5">&#9744;</font> |
+//! | `unsafe_speed` | Permit using unsafe code to improve performance                     | <font size="5">&#9744;</font> |
+//! | `std`          | Support for Rust's standard library                                 | <font size="5">&#9745;</font> |
+//! | `alloc`        | Support for memory allocation without full `std` support            | <font size="5">&#9744;</font> |
+//! | `test`         | Build the diny_test formatter and re-export it to diny::test        | <font size="5">&#9744;</font> |
 //!
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 extern crate alloc;
