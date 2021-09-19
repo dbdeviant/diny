@@ -29,6 +29,8 @@ futures-util = "0.3"
 diny_core   = { version = "0.0.3", path = "../diny_core",   default_features = false }
 diny_derive = { version = "0.0.3", path = "../diny_derive", default_features = false }
 diny_test   = { version = "0.0.3", path = '../diny_test',   default_features = false }
+criterion = "0.3"
+
 
 [package.metadata.playground]
 features = ["derive", "test"]
@@ -37,3 +39,11 @@ features = ["derive", "test"]
 features = ["derive"]
 rustdoc-args = ["--cfg", "docsrs"]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[[bench]]
+name = "rec"
+harness = false
+
+[[bench]]
+name = "array"
+harness = false
