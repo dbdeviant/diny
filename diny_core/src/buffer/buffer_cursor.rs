@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 #[allow(unused)]
 use futures::{AsyncRead, AsyncBufRead, AsyncWrite, io::Result, ready};
+use crate::backend;
 
 /// Retains the current index state into a serialization buffer.
 ///
@@ -70,6 +71,34 @@ impl BufferCursor {
         self.offset += min(n, self.remaining());
     }
 
+    pub fn start_write<W>(&mut self, mut writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> backend::PollEncodeStatus<std::io::Error>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
+        while self.is_pending() {
+            match Pin::new(&mut writer).poll_write(cx, &data[self.offset..self.len]) {
+                Poll::Ready(r) =>  match r {
+                    Ok(n) => {
+                        if n == 0 {
+                            self.mark_as_error();
+                            return backend::PollEncodeStatus::Error(futures::io::ErrorKind::WriteZero.into());
+                        } else {
+                            self.advance(n);
+                        }
+                    },
+                    Err(e) => {
+                        self.mark_as_error();
+                        return backend::PollEncodeStatus::Error(e);
+                    }
+                }
+                Poll::Pending => return backend::PollEncodeStatus::Pending,
+            }
+        }
+
+        backend::PollEncodeStatus::Fini
+    }
+
     /// Attempt to write all of the bytes in `data`, starting from the current
     /// offset of the cursor.
     ///
@@ -78,31 +107,51 @@ impl BufferCursor {
     /// next, despite progress being made.  The expectation is that the caller
     /// does not need to retain any information about the progress of the write,
     /// and simply needs to pass in the same references for each call.
-    pub fn write_remaining<W>(&mut self, mut writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> Poll<Result<()>>
+    pub fn write_remaining<W>(&mut self, writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> backend::PollEncodeStatus<std::io::Error>
     where
         W: AsyncWrite + Unpin,
     {
+        debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
         if self.len > data.len() {
             self.mark_as_error();
-            return Poll::Ready(Err(futures::io::ErrorKind::InvalidInput.into()));
-        }
-
-        while self.is_pending() {
-            let n = ready!(Pin::new(&mut writer).poll_write(cx, &data[self.offset..self.len]))?;
-            if n == 0 {
-                self.mark_as_error();
-            } else {
-                self.advance(n);
-            }
         }
 
         if self.is_error() {
-            Poll::Ready(Err(futures::io::ErrorKind::WriteZero.into()))
+            backend::PollEncodeStatus::Error(futures::io::ErrorKind::InvalidInput.into())
         } else {
-            Poll::Ready(Ok(()))
+            self.start_write(writer, data, cx)
         }
     }
 
+    pub fn start_read<R>(&mut self, mut reader: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
+    where
+        R: AsyncRead + Unpin,
+    {
+        debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
+        loop {
+            match Pin::new(&mut reader).poll_read(cx, &mut data[self.offset..self.len]) {
+                Poll::Ready(r) => match r {
+                    Ok(n) => {
+                        if n == 0 {
+                            self.mark_as_error();
+                            return backend::PollDecodeStatus::Error(futures::io::ErrorKind::UnexpectedEof.into());
+                        } else {
+                            self.advance(n);
+                            if !self.is_pending() {
+                                return backend::PollDecodeStatus::Fini(());
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        self.mark_as_error();
+                        return backend::PollDecodeStatus::Error(e);
+                    }
+                },
+                Poll::Pending => return backend::PollDecodeStatus::Pending,
+            }
+        }        
+    }
+    
     /// Attempt to read all remaining bytes that are expected into `data`, starting
     /// from the current offset of the cursor.
     ///
@@ -111,29 +160,19 @@ impl BufferCursor {
     /// next, despite progress being made.  The expectation is that the caller
     /// does not need to retain any information about the progress of the read,
     /// and simply needs to pass in the same references for each call.
-    pub fn read_remaining<R>(&mut self, mut r: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> Poll<Result<()>>
+    pub fn read_remaining<R>(&mut self, reader: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
     where
         R: AsyncRead + Unpin,
     {
+        debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
         if self.len > data.len() {
             self.mark_as_error();
-            return Poll::Ready(Err(futures::io::ErrorKind::InvalidInput.into()));
         }
 
-        while self.is_pending() {
-            let n = ready!(Pin::new(&mut r).poll_read(cx, &mut data[self.offset..self.len]))?;
-            if n == 0 {
-                self.mark_as_error();
-            } else {
-                self.advance(n);
-            }
-        }
-
-        // Ensure the operation is idempotent on failure
         if self.is_error() {
-            Poll::Ready(Err(futures::io::ErrorKind::UnexpectedEof.into()))
+            backend::PollDecodeStatus::Error(futures::io::ErrorKind::InvalidInput.into())
         } else {
-            Poll::Ready(Ok(()))
+            self.start_read(reader, data, cx)
         }
     }
 
@@ -141,33 +180,39 @@ impl BufferCursor {
     /// of the [AsyncBufRead] trait to minimize the number of copies required to transfer
     /// the bytes into a pre-allocated [Vec].
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn fill_vec<R>(&mut self, mut reader: &mut R, data: &mut Vec<u8>, cx: &mut Context<'_>) -> Poll<Result<()>>
+    pub fn fill_vec<R>(&mut self, mut reader: &mut R, data: &mut Vec<u8>, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), std::io::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
-        if self.len > data.capacity() {
-            self.mark_as_error();
-            return Poll::Ready(Err(futures::io::ErrorKind::InvalidInput.into()));
+        debug_assert!(!self.is_error() && self.is_pending());
+
+        if self.is_error() {
+            return backend::PollDecodeStatus::Error(futures::io::ErrorKind::InvalidInput.into());            
         }
 
         while self.is_pending() {
-            let buf = ready!(Pin::new(&mut reader).poll_fill_buf(cx))?;
-            if buf.is_empty() {
-                self.mark_as_error();
-            } else {
-                let n = min(buf.len(), self.remaining());
-                data.extend_from_slice(&buf[..n]);
-                Pin::new(&mut reader).consume(n);
-
-                self.advance(n);
+            match Pin::new(&mut reader).poll_fill_buf(cx) {
+                Poll::Ready(r) => match r {
+                    Ok(buf) => {
+                        if buf.is_empty() {
+                            self.mark_as_error();
+                            return backend::PollDecodeStatus::Error(futures::io::ErrorKind::UnexpectedEof.into());
+                        } else {
+                            let n = min(buf.len(), self.remaining());
+                            data.extend_from_slice(&buf[..n]);
+                            Pin::new(&mut reader).consume(n);            
+                            self.advance(n);
+                        }
+                    },
+                    Err(err) => {
+                        self.mark_as_error();
+                        return backend::PollDecodeStatus::Error(err);
+                    }
+                },
+                Poll::Pending => return backend::PollDecodeStatus::Pending,
             }
         }
 
-        // Ensure the operation is idempotent on failure
-        if self.is_error() {
-            Poll::Ready(Err(futures::io::ErrorKind::UnexpectedEof.into()))
-        } else {
-            Poll::Ready(Ok(()))
-        }
+        backend::PollDecodeStatus::Fini(())
     }
 }

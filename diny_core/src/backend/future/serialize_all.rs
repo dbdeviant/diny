@@ -1,6 +1,6 @@
 use core::task::{Context, Poll};
 use futures::AsyncWrite;
-use crate::backend::{Encode, FormatEncode, FormatSerialize};
+use crate::backend::{self, Encode, FormatEncode, FormatSerialize};
 
 /// Implements a [serialization future](FormatSerialize) for any
 /// [encoder](Encode).
@@ -47,6 +47,10 @@ where
 
     fn poll(mut self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = &mut *self;
-        this.encode.poll_encode(this.format, &mut this.writer, this.data, cx)
+        match this.encode.poll_encode(this.format, &mut this.writer, this.data, cx) {
+            backend::PollEncodeStatus::Fini     => Poll::Ready(Ok(())),
+            backend::PollEncodeStatus::Pending  => Poll::Pending,
+            backend::PollEncodeStatus::Error(e) => Poll::Ready(Err(e)),
+        }
     }
 }

@@ -1,4 +1,4 @@
-use core::task::{Context, Poll};
+use core::task::Context;
 use futures::{AsyncRead, AsyncBufRead, AsyncWrite};    
 use diny::buffer::BufferState;
 
@@ -43,7 +43,19 @@ impl diny::buffer::BufferEncode for Encoder {
         Self::new(data)
     }
 
-    fn poll_encode_buffer<W>(&mut self, _format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> Poll<Result<(), Error>> 
+    fn start_encode_buffer<W>(_format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> diny::backend::StartEncodeStatus<Self, <<Self as diny::buffer::BufferEncode>::Format as diny::backend::Format>::Error>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        let mut enc = Self::new(data);
+        match enc.0.start_write(writer, cx) {
+            diny::backend::PollEncodeStatus::Fini => diny::backend::StartEncodeStatus::Fini,
+            diny::backend::PollEncodeStatus::Pending => diny::backend::StartEncodeStatus::Pending(enc),
+            diny::backend::PollEncodeStatus::Error(err) => diny::backend::StartEncodeStatus::Error(err),
+        }
+    }
+
+    fn poll_encode_buffer<W>(&mut self, _format: &Self::Format, writer: &mut W, cx: &mut Context<'_>) -> diny::backend::PollEncodeStatus<Error>
     where
         W: AsyncWrite + Unpin,
     {
@@ -61,24 +73,23 @@ impl diny::backend::Decode for Decoder {
         Self(BufferState::init())
     }
 
-    fn start_decode<R>(f: &ThisFormat, r: &mut R, cx: &mut Context<'_>) -> Result<diny::backend::DecodeStatus<Self::Data, Self>, Error>
+    fn start_decode<R>(f: &ThisFormat, r: &mut R, cx: &mut Context<'_>) -> diny::backend::StartDecodeStatus<Self::Data, Self, Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         let mut decode = Self::init();
-        match decode.poll_decode(f, r, cx) {
-            Poll::Ready(d) => d.map(diny::backend::DecodeStatus::Ready),
-            Poll::Pending => Ok(diny::backend::DecodeStatus::Pending(decode)),
-        }
+        decode
+        .poll_decode(f, r, cx)
+        .lift(decode)
     }
 
-    fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, Error>>
+    fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
-        let this = &mut *self;
-        futures::ready!(this.0.read_remaining(reader, cx))?;
-        Poll::Ready(from_le_bytes(*self.0.buffer()))
+        (&mut self.0)
+        .read_remaining(reader, cx)
+        .and_then(|()| from_le_bytes(*self.0.buffer()).into())
     }
 }
 

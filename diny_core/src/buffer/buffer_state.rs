@@ -1,7 +1,9 @@
-use core::task::{Context, Poll};
+use core::task::Context;
 
-use futures::{AsyncRead, AsyncWrite, io::Result};
+use futures::{AsyncRead, AsyncWrite};
 use crate::buffer::BufferCursor;
+use crate::backend;
+
 
 /// A convenient struct to represent serialization of an underlying
 /// byte buffer.
@@ -76,16 +78,30 @@ impl<const LEN: usize> BufferState<LEN> {
         self.cur.extend_len(::core::cmp::min(LEN - self.cur.len(), n));
     }
 
+    pub fn start_write<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<futures::io::Error>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        self.cur.start_write(writer, &self.buf, cx)
+    }
+
     /// Attempt to write all remaining bytes from the buffer.
-    pub fn write_remaining<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> Poll<Result<()>>
+    pub fn write_remaining<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<futures::io::Error>
     where
         W: AsyncWrite + Unpin,
     {
         self.cur.write_remaining(writer, &self.buf, cx)
     }
 
+    pub fn start_read<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
+    where
+        R: AsyncRead + Unpin,
+    {
+        self.cur.start_read(reader, &mut self.buf, cx)
+    }
+
     /// Attempt to read all remaining bytes into the buffer.
-    pub fn read_remaining<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<()>>
+    pub fn read_remaining<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
     where
         R: AsyncRead + Unpin,
     {

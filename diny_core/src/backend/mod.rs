@@ -18,9 +18,14 @@ use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
 pub use self::{
     decode::{
         Decode,
-        DecodeStatus,
+        PollDecodeStatus,
+        StartDecodeStatus,
     },
-    encode::Encode,
+    encode::{
+        Encode,
+        PollEncodeStatus,
+        StartEncodeStatus,
+    },
     format::{
         Format,
         FormatDecode,

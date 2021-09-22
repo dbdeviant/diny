@@ -16,6 +16,9 @@ extern crate std;
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 extern crate alloc;
 
+#[macro_use]
+mod macros;
+
 /// Types and traits implemented by backend [formatters](backend::Format)
 pub mod backend;
 /// Helper modules for implementing buffered serialization primitives

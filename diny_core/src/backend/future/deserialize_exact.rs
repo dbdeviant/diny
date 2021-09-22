@@ -1,6 +1,6 @@
 use core::{pin::Pin, task::{Context, Poll}};
 use futures::{AsyncRead, AsyncBufRead};
-use crate::backend::{Decode, FormatDecode, FormatDeserialize};
+use crate::backend::{self, Decode, FormatDecode, FormatDeserialize};
 
 /// Implements a [deserialization future](FormatDeserialize) for any
 /// [decoder](Decode).
@@ -45,6 +45,10 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = &mut *self;
-        this.decode.poll_decode(this.format, this.reader, cx)
+        match this.decode.poll_decode(this.format, this.reader, cx) {
+            backend::PollDecodeStatus::Fini(d)  => Poll::Ready(Ok(d)),
+            backend::PollDecodeStatus::Pending  => Poll::Pending,
+            backend::PollDecodeStatus::Error(e) => Poll::Ready(Err(e)),
+        }
     }
 }

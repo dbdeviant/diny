@@ -5,7 +5,7 @@ macro_rules! seq_collection_def {
     ($t: ident < T $(: $t_bound: ident $(+ $t_bounds: ident)*)? $(, $s: ident: $s_bound: ident $(+ $s_bounds: ident)*)? >) => {
         #[allow(unused)]
         use core::marker::PhantomData;
-        use core::task::{Context, Poll};
+        use core::task::Context;
         use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
         use crate::backend::{self, Encode as _, Decode as _, internal::SequenceLen};
 
@@ -35,29 +35,27 @@ macro_rules! seq_collection_def {
             $($s: $s_bound $(+ $s_bounds)*,)?
         {
             #[allow(clippy::ptr_arg)]
-            fn after_init<W>(format: &F, writer: &mut W, data: &Data<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_init<W>(format: &F, writer: &mut W, data: &Data<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
             where
                 W: AsyncWrite + Unpin,
             {
                 let len: SequenceLen = data.len().into();
                 match <SequenceLen as backend::Encodable>::Encoder::<F>::start_encode(format, writer, &len, cx) {
-                    Ok(o) => match o {
-                        None => Self::after_len(format, writer, *len, data, cx),
-                        Some(s) => Ok(Self::Len(len, s)),
-                    }
-                    Err(e) => Err(e)
+                    backend::StartEncodeStatus::Fini => Self::after_len(format, writer, *len, data, cx),
+                    backend::StartEncodeStatus::Pending(enc) => backend::StartEncodeStatus::Pending(Self::Len(len, enc)),
+                    backend::StartEncodeStatus::Error(e) => backend::StartEncodeStatus::Error(e),
                 }
             }
 
             #[allow(clippy::ptr_arg)]
-            fn after_len<W>(format: &F, writer: &mut W, len: Len, data: &Data<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_len<W>(format: &F, writer: &mut W, len: Len, data: &Data<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
             where
                 W: AsyncWrite + Unpin,
             {
                 Self::items_from(format, writer, len, 0, <Data<T $(, $s)?> as CollectionApi<T>>::iter_from(data, 0), cx)
             }
                 
-            fn items_from<'a, W, I>(format: &F, writer: &mut W, len: usize, idx: usize, iter: I, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn items_from<'a, W, I>(format: &F, writer: &mut W, len: usize, idx: usize, iter: I, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
             where
                 T: 'a,
                 I: Iterator<Item=&'a T>,
@@ -65,15 +63,13 @@ macro_rules! seq_collection_def {
             {
                 for (i, d) in iter.enumerate() {
                     match <T as backend::Encodable>::Encoder::<F>::start_encode(format, writer, d, cx) {
-                        Ok(o) => match o {
-                            None    => continue,
-                            Some(s) => return Ok(Self::Cur(len, i + idx, s)),
-                        }
-                        Err(e) => return Err(e)
+                        backend::StartEncodeStatus::Fini         => continue,
+                        backend::StartEncodeStatus::Pending(enc) => return backend::StartEncodeStatus::Pending(Self::Cur(len, i + idx, enc)),
+                        backend::StartEncodeStatus::Error(e)     => return backend::StartEncodeStatus::Error(e),
                     }
                 }
 
-                Ok(Self::Fini)
+                backend::StartEncodeStatus::Fini
             }
         }
 
@@ -90,52 +86,28 @@ macro_rules! seq_collection_def {
                 Self::Init
             }
 
-            fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <F as backend::Format>::Error>
+            fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
             where
                 W: AsyncWrite + Unpin,
             {
                 Self::after_init(format, writer, data, cx)
-                .map(|s| match s {
-                    Self::Fini => None,
-                    _          => Some(s),
-                })
             }
 
-            fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
+            fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
             where
                 W: AsyncWrite + Unpin,
             {
-                let res = match self {
-                    Self::Init => {
-                        Self::after_init(format, writer, data, cx)
-                    },
-                    Self::Len(len, enc) => {
-                        futures::ready!(enc.poll_encode(format, writer, len, cx))
-                        .and_then(|_| Self::after_len(format, writer, **len, data, cx))
-                    }
+                match self {
+                    Self::Init               => encode_chain!(*self, Self::start_encode(format, writer, data, cx)),
+                    Self::Len(len, enc)      => encode_poll_chain!(*self, enc.poll_encode(format, writer, len, cx), Self::after_len(format, writer, **len, data, cx)),
                     Self::Cur(len, idx, enc) => {
                         let mut iter = <Self::Data as CollectionApi<T>>::iter_from(data, *idx);
                         match iter.next() {
-                            Some(d) => futures::ready!(enc.poll_encode(format, writer, d, cx))
-                                       .and_then(|_| Self::items_from(format, writer, *len, *idx + 1, iter, cx)),
-                            None    => Err(F::invalid_input_err())
+                            Some(d) => encode_poll_chain!(*self, enc.poll_encode(format, writer, d, cx), Self::items_from(format, writer, *len, *idx + 1, iter, cx)),
+                            None    => backend::PollEncodeStatus::Error(F::invalid_input_err()),
                         }                        
-                    }
-                    _ => Err(F::invalid_input_err())
-                };
-
-                match res {
-                    Ok(enc) => {
-                        *self = enc;
-                        match self {
-                            Self::Fini => Poll::Ready(Ok(())),
-                            _          => Poll::Pending,
-                        }
-                    },
-                    Err(e) => {
-                        *self = Self::Fini;
-                        Poll::Ready(Err(e))
-                    }
+                    }, 
+                    _ => backend::PollEncodeStatus::Error(F::invalid_input_err()),
                 }
             }
         }
@@ -240,18 +212,18 @@ macro_rules! seq_collection_def {
             T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
             $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
                 <SequenceLen as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
-                .and_then(|s| match s {
-                    backend::DecodeStatus::Ready  (len) => Self::after_len(format, reader, *len, data, cx),
-                    backend::DecodeStatus::Pending(dec) => Ok(Self::Len(dec))
-                })
+                .and_then(
+                    |len| Self::after_len(format, reader, *len, data, cx),
+                    Self::Len,
+                )
             }
 
-            fn after_len<R>(format: &F, reader: &mut R, len: Len, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn after_len<R>(format: &F, reader: &mut R, len: Len, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
@@ -259,21 +231,19 @@ macro_rules! seq_collection_def {
                 Self::items_from(format, reader, len, 0, data, cx)
             }
 
-            fn items_from<R>(format: &F, reader: &mut R, len: Len, idx: Idx, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+            fn items_from<R>(format: &F, reader: &mut R, len: Len, idx: Idx, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
                 for i in idx..len {
                     match <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx) {
-                        Ok(status) => match status {
-                            backend::DecodeStatus::Ready(d) => { <Data<T $(, $s)?> as CollectionApi<T>>::append(data, d); continue },
-                            backend::DecodeStatus::Pending(p) => return Ok(Self::Cur(len, i, p)),
-                        },
-                        Err(e) => return Err(e),
+                        backend::StartDecodeStatus::Fini(d) => { <Data<T $(, $s)?> as CollectionApi<T>>::append(data, d); continue },
+                        backend::StartDecodeStatus::Pending(dec) => return backend::StartDecodeStatus::Pending(Self::Cur(len, i, dec)),
+                        backend::StartDecodeStatus::Error(e) => return backend::StartDecodeStatus::Error(e),
                     }
                 }
-
-                Ok(Self::Fini)
+        
+                backend::StartDecodeStatus::Fini(())
             }
         }
 
@@ -299,68 +269,55 @@ macro_rules! seq_collection_def {
                 Self { state: Some(DecodeState::new()) }
             }
 
-            fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Self::Data, Self>, <F as backend::Format>::Error>
+            fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
                 let mut data = PartialData::new();
-                DecodeCursor::after_init(format, reader, &mut data, cx)
-                .map(|cursor| match cursor {
-                    DecodeCursor::Fini => backend::DecodeStatus::Ready(data.into_data()),
-                    _                  => backend::DecodeStatus::Pending(Self { state: Some(DecodeState { data, cursor }) })
-                })
+                match DecodeCursor::after_init(format, reader, &mut data, cx) {
+                    backend::StartDecodeStatus::Fini(())        => backend::StartDecodeStatus::Fini(data.into_data()),
+                    backend::StartDecodeStatus::Pending(cursor) => backend::StartDecodeStatus::Pending(Self { state: Some(DecodeState { data, cursor }) }),
+                    backend::StartDecodeStatus::Error(e)        => backend::StartDecodeStatus::Error(e),
+                }
             }
 
-            fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, <F as backend::Format>::Error>>
+            fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
-                struct RetData;
-
-                let _ret_data = match &mut self.state {
-                    None => return Poll::Ready(Err(F::invalid_input_err())),
-                    Some(state) => {
-                        let data = &mut state.data;
-                        let res = match &mut state.cursor {
-                            DecodeCursor::Init => {
-                                DecodeCursor::after_init(format, reader, &mut state.data, cx)
-                            }
-                            DecodeCursor::Len(dec) => {
-                                futures::ready!(dec.poll_decode(format, reader, cx))
-                                .and_then(|len| DecodeCursor::after_len(format, reader, *len, data, cx))
-                            }
-                            DecodeCursor::Cur(len, idx, dec) => {
-                                futures::ready!(dec.poll_decode(format, reader, cx))
-                                .and_then(|d| {
-                                    <Self::Data as CollectionApi<T>>::append(data, d);
-                                    DecodeCursor::items_from(format, reader, *len, *idx + 1, data, cx)
-                                })
-                            }
-                            _ => Err(F::invalid_input_err())
-                        };
-
-                        match res {
-                            Ok(dec) => {
-                                state.cursor = dec;
-                                match state.cursor {
-                                    DecodeCursor::Fini => RetData, // the one and only statement value
-                                    _ => return Poll::Pending,
+                if let Some(state) = &mut self.state {
+                    match &mut state.cursor {
+                        DecodeCursor::Init => decode_chain!(state.cursor, DecodeCursor, DecodeCursor::after_init(format, reader, &mut state.data, cx)),
+                        DecodeCursor::Len(dec) =>
+                            decode_poll_chain!(
+                                state.cursor,
+                                DecodeCursor,
+                                dec.poll_decode(format, reader, cx),
+                                |len: SequenceLen| {
+                                    DecodeCursor::after_len(format, reader, *len, &mut state.data, cx)
                                 }
-                            }
-                            Err(e) => {
-                                state.cursor = DecodeCursor::Fini;
-                                return Poll::Ready(Err(e))
-                            },
-                        };
+                            ),
+                        DecodeCursor::Cur(len, idx, dec) =>
+                            decode_poll_chain!(
+                                state.cursor,
+                                DecodeCursor,
+                                dec.poll_decode(format, reader, cx),
+                                |d| {
+                                    <Self::Data as CollectionApi<T>>::append(&mut state.data, d);
+                                    DecodeCursor::items_from(format, reader, *len, *idx + 1, &mut state.data, cx)
+                                }
+                            ),
+                        _ => return backend::PollDecodeStatus::Error(F::invalid_input_err()),
                     }
-                };
-
-                // SAFETY:
-                // The only way this code gets executed is if the state existed and reached
-                // the DecodeCursor::Fini state.  That cursor state is only reached once all
-                // string bytes have been read, and this next statement consumes the outer
-                // state in order to produce the returned string
-                Poll::Ready(Ok(self.state.take().unwrap().data.into_data()))
+                    // SAFETY:
+                    // The only way this code gets executed is if the outer state existed and reached
+                    // the DecodeCursor::Fini state as a result of this call.  That cursor state is
+                    // only reached once all array items have been created, and this next statement
+                    // consumes the outer state in order to produce the returned array.
+                    .map(|()| self.state.take().unwrap().data.into_data())
+                } else {
+                    backend::PollDecodeStatus::Error(F::invalid_input_err())
+                }
             }
         }
 

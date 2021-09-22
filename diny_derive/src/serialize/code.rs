@@ -40,38 +40,38 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
             let this_method = &field.this_method;
 
             let next = &field.next_method.as_ref().map_or_else(
-                ||  quote! { ::core::result::Result::Ok(Self::Fini) },
+                ||  quote! { ::diny::backend::StartEncodeStatus::Fini },
                 |n| quote! { Self::#n(format, writer, data, cx) },
             );
 
             quote! {
-                fn #this_method<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<Self, <__F as ::diny::backend::Format>::Error>
+                fn #this_method<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
-                    <<#type_ref as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &data.#field_name, cx)
-                    .and_then(|o| match o {
-                        ::core::option::Option::None    => #next,
-                        ::core::option::Option::Some(s) => ::core::result::Result::Ok(Self::#ctor(s)),
-                    })
+                    match <<#type_ref as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &data.#field_name, cx) {
+                        ::diny::backend::StartEncodeStatus::Fini         => #next,
+                        ::diny::backend::StartEncodeStatus::Pending(enc) => ::diny::backend::StartEncodeStatus::Pending(Self::#ctor(enc)),
+                        ::diny::backend::StartEncodeStatus::Error(err)   => ::diny::backend::StartEncodeStatus::Error(err),
+                    }
                 }
             }
         });
 
+        let init_transition = gen_encode_chain(quote! { Self::start_encode(format, writer, data, cx) });
+
         let transitions = encoded_fields.iter().map(|field| {
             let ctor = &field.ctor;
             let field_name = &field.field.id.field_name();
+            let poll = quote! { enc.poll_encode(format, writer, &data.#field_name, cx) };
 
-            let next = &field.next_method.as_ref().map_or_else(
-                ||  quote! { ::core::result::Result::Ok(Self::Fini) },
-                |n| quote! { Self::#n(format, writer, data, cx) },
-            );
+            let transition = match &field.next_method {
+                None => gen_encode_poll_fini(poll),
+                Some(n) => gen_encode_poll_chain(poll, quote! { Self::#n(format, writer, data, cx) }),
+            };
 
             quote! {
-                Self::#ctor(enc) => {
-                    ::futures::ready!(enc.poll_encode(format, writer, &data.#field_name, cx))
-                    .and_then(|_| #next)
-                }
+                Self::#ctor(enc) => #transition
             }
         });
 
@@ -103,43 +103,21 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
                     Self::Init
                 }
 
-                fn start_encode<__W>(format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::core::option::Option<Self>, <__F as ::diny::backend::Format>::Error>
+                fn start_encode<__W>(format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     Self::after_init(format, writer, data, cx)
-                    .map(|s| match s {
-                        Self::Fini => ::core::option::Option::None,
-                        _          => ::core::option::Option::Some(s),
-                    })
                 }
         
-                fn poll_encode<__W>(&mut self, format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::core::task::Poll<::core::result::Result<(), <<Self as ::diny::backend::Encode>::Format as ::diny::backend::Format>::Error>>
+                fn poll_encode<__W>(&mut self, format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollEncodeStatus<<__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
-                    let res = match self {
-                        Self::Init => {
-                            Self::after_init(format, writer, data, cx)
-                        },
+                    match self {
+                        Self::Init => #init_transition,
                         #(#transitions)*
-                        Self::Fini => {
-                            ::core::result::Result::Err(__F::invalid_input_err())
-                        }
-                    };
-        
-                    match res {
-                        ::core::result::Result::Ok(enc) => {
-                            *self = enc;
-                            match self {
-                                Self::Fini => ::core::task::Poll::Ready(::core::result::Result::Ok(())),
-                                _          => ::core::task::Poll::Pending,
-                            }
-                        },
-                        ::core::result::Result::Err(e) => {
-                            *self = Self::Fini;
-                            ::core::task::Poll::Ready(::core::result::Result::Err(e))
-                        }
+                        Self::Fini => ::diny::backend::PollEncodeStatus::Error(__F::invalid_input_err())
                     }
                 }
             }
@@ -250,37 +228,54 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             let this_method = &field.this_method;
 
             let next = &field.next_method.as_ref().map_or_else(
-                ||  quote! { ::core::result::Result::Ok(Self::Fini) },
+                ||  quote! { ::diny::backend::StartDecodeStatus::Fini(()) },
                 |n| quote! { Self::#n(format, reader, data, cx) },
             );
             
             quote! {
-                fn #this_method<__R>(format: &__F, reader: &mut __R, data: &mut __PartialData, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<Self, <__F as ::diny::backend::Format>::Error>
+                fn #this_method<__R>(format: &__F, reader: &mut __R, data: &mut __PartialData, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<(), Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     <<#type_ref as ::diny::backend::Decodable>::Decoder::<__F> as ::diny::backend::Decode>::start_decode(format, reader, cx)
-                    .and_then(|s| match s {
-                        ::diny::backend::DecodeStatus::Ready  (d) => { data.#field_name = ::core::option::Option::Some(d); #next },
-                        ::diny::backend::DecodeStatus::Pending(p) => ::core::result::Result::Ok(Self::#ctor(p)),
-                    })
+                    .and_then(
+                        |d| { data.#field_name = ::core::option::Option::Some(d); #next },
+                        Self::#ctor,
+                    )
                 }
             }
         });
+
+        let init_transition = gen_decode_chain(
+            &quote! { state.cursor },
+            &quote! { __DecodeCursor },
+            quote! { __DecodeCursor::after_init(format, reader, state.data.as_mut().unwrap(), cx) },
+        );
 
         let transitions = encoded_fields.iter().map(|field| {
             let ctor = &field.ctor;
             let field_name = &field.field.id.field_name();
 
             let next = &field.next_method.as_ref().map_or_else(
-                ||  quote! { ::core::result::Result::Ok(__DecodeCursor::<__F>::Fini) },
+                ||  quote! { ::diny::backend::StartDecodeStatus::Fini(()) },
                 |n| quote! { __DecodeCursor::#n(format, reader, state.data.as_mut().unwrap(), cx) },
+            );
+
+            let poll_chain = gen_decode_poll_chain(
+                &quote! { state.cursor },
+                &quote! { __DecodeCursor },
+                quote! { dec.poll_decode(format, reader, cx) },
+                quote! {
+                    |d| {
+                        state.data.as_mut().unwrap().#field_name = ::core::option::Option::Some(d);
+                        #next
+                    }                    
+                }
             );
 
             quote! {
                 __DecodeCursor::#ctor(dec) => {
-                    ::futures::ready!(dec.poll_decode(format, reader, cx))
-                    .and_then(|d| { state.data.as_mut().unwrap().#field_name = ::core::option::Option::Some(d); #next })
+                    #poll_chain
                 }
             }
         });
@@ -372,63 +367,41 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                     Self::new()
                 }
         
-                fn start_decode<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::diny::backend::DecodeStatus<Self::Data, Self>, <__F as ::diny::backend::Format>::Error>
+                fn start_decode<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<Self::Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     let mut data = __PartialData::new();
-                    __DecodeCursor::after_init(format, reader, &mut data, cx)
-                    .and_then(|cursor| match cursor {
-                        __DecodeCursor::Fini => {
+                    match __DecodeCursor::after_init(format, reader, &mut data, cx) {
+                        ::diny::backend::StartDecodeStatus::Fini(()) =>
                             match data.into_data() {
-                                ::core::option::Option::None    => ::core::result::Result::Err(__F::invalid_data_err()),  // Should be unreachable!()
-                                ::core::option::Option::Some(d) => ::core::result::Result::Ok(::diny::backend::DecodeStatus::Ready(d)),
-                            }
-                        },
-                        _  => ::core::result::Result::Ok(::diny::backend::DecodeStatus::Pending(Self { state: ::core::option::Option::Some(__DecodeState{ data: ::core::option::Option::Some(data), cursor }) })),
-                    })
+                                ::core::option::Option::None => ::diny::backend::StartDecodeStatus::Error(__F::invalid_data_err()),
+                                ::core::option::Option::Some(d) => ::diny::backend::StartDecodeStatus::Fini(d),
+                            },
+                        ::diny::backend::StartDecodeStatus::Pending(cursor) => ::diny::backend::StartDecodeStatus::Pending(Self { state: ::core::option::Option::Some(__DecodeState { data: ::core::option::Option::Some(data), cursor }) }),
+                        ::diny::backend::StartDecodeStatus::Error(e) => ::diny::backend::StartDecodeStatus::Error(e),
+                    }
                 }
 
 
-                fn poll_decode<__R>(&mut self, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::task::Poll<::core::result::Result<Self::Data, <__F as ::diny::backend::Format>::Error>>
+                fn poll_decode<__R>(&mut self, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollDecodeStatus<Self::Data, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
-                    match &mut self.state {
-                        ::core::option::Option::None => ::core::task::Poll::Ready(::core::result::Result::Err(__F::invalid_input_err())),
-                        ::core::option::Option::Some(state) => {
-                            let res = match &mut state.cursor {
-                                __DecodeCursor::Init => {
-                                    __DecodeCursor::<__F>::after_init(format, reader, state.data.as_mut().unwrap(), cx)
-                                }
-                                #(#transitions)*
-                                __DecodeCursor::Fini => {
-                                    ::core::result::Result::Err(__F::invalid_input_err())
-                                }
-                            };
-                
-                            let ret = match res {
-                                ::core::result::Result::Ok(dec) => {
-                                    state.cursor = dec;
-                                    match state.cursor {
-                                        __DecodeCursor::Fini => {
-                                            let ret = state.data.take().and_then(|d| d.into_data());
-                                            match ret {
-                                                ::core::option::Option::None    => ::core::task::Poll::Ready(::core::result::Result::Err(__F::invalid_data_err())), // Should be unreachable!()
-                                                ::core::option::Option::Some(d) => ::core::task::Poll::Ready(::core::result::Result::Ok(d)),
-                                            }
-                                        },
-                                        _  => return ::core::task::Poll::Pending,
-                                    }
-                                },
-                                ::core::result::Result::Err(e) => {
-                                    ::core::task::Poll::Ready(::core::result::Result::Err(e))
-                                }
-                            };
-
-                            self.state = ::core::option::Option::None;
-                            ret
+                    if let Some(state) = &mut self.state {
+                        match &mut state.cursor {
+                            __DecodeCursor::Init => {
+                                #init_transition
+                            }
+                            #(#transitions)*
+                            __DecodeCursor::Fini => return ::diny::backend::PollDecodeStatus::Error(__F::invalid_input_err()),
                         }
+                        .and_then(|()| match self.state.take().unwrap().data.unwrap().into_data() {
+                            ::core::option::Option::None => ::diny::backend::PollDecodeStatus::Error(__F::invalid_data_err()),
+                            ::core::option::Option::Some(d) => ::diny::backend::PollDecodeStatus::Fini(d),
+                        })
+                    } else {
+                        ::diny::backend::PollDecodeStatus::Error(__F::invalid_input_err())
                     }
                 }
             }
@@ -517,38 +490,47 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
         });
 
         let methods = encoded_variants.iter().map(|variant| {
-            let encode_ctor = &variant.ctor;
+            let ctor = &variant.ctor;
             let type_ref = &variant.type_ref.to_token_stream();
             let this_method = &variant.this_method;
 
             quote! {
-                fn #this_method<__W>(format: &__F, writer: &mut __W, data: &#type_ref, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<Self, <__F as ::diny::backend::Format>::Error>
+                fn #this_method<__W>(format: &__F, writer: &mut __W, data: &#type_ref, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
-                    <<#type_ref as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &data, cx)
-                    .map(|o| match o {
-                        ::core::option::Option::None    => Self::Fini,
-                        ::core::option::Option::Some(s) => Self::#encode_ctor(s),
-                    })
+                    match <<#type_ref as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &data, cx) {
+                        ::diny::backend::StartEncodeStatus::Fini         => ::diny::backend::StartEncodeStatus::Fini,
+                        ::diny::backend::StartEncodeStatus::Pending(enc) => ::diny::backend::StartEncodeStatus::Pending(Self::#ctor(enc)),
+                        ::diny::backend::StartEncodeStatus::Error(err)   => ::diny::backend::StartEncodeStatus::Error(err),        
+                    }
                 }
             }
         });
+
+        let init_transition = gen_encode_chain(quote! { Self::after_init(format, writer, data, cx) });
+        let index_transition = gen_encode_poll_chain(quote! { enc.poll_encode(format, writer, &index, cx) }, quote! { Self::after_index(format, writer, data, cx) } );
 
         let transitions = encoded_variants.iter().map(|variant| {
             let encode_ctor = &variant.ctor;
             let data_ctor = &variant.variant.ctor;
 
             let poll = match &variant.type_ref {
-                VariantType::Unit       => quote! { __Data::#data_ctor{}  => ::futures::ready!(enc.poll_encode(format, writer, &(), cx)) },
-                VariantType::TypeRef(_) => quote! { __Data::#data_ctor(d) => ::futures::ready!(enc.poll_encode(format, writer, d  , cx)) },
+                VariantType::Unit       => {
+                    let poll_fini = gen_encode_poll_fini(quote! { enc.poll_encode(format, writer, &(), cx) });
+                    quote! { __Data::#data_ctor{}  => #poll_fini }
+                }
+                VariantType::TypeRef(_) => {
+                    let poll_fini = gen_encode_poll_fini(quote! { enc.poll_encode(format, writer, d, cx) });
+                    quote! { __Data::#data_ctor(d) => #poll_fini }
+                }                
             };
 
             quote! {
                 Self::#encode_ctor(enc) => {
                     match data {
-                        #poll.map(|_| Self::Fini),
-                        _ => { debug_assert!(false); Err(__F::invalid_input_err()) },
+                        #poll,
+                        _ => { debug_assert!(false); ::diny::backend::PollEncodeStatus::Error(__F::invalid_input_err()) },
                     }
                 }
             }
@@ -575,19 +557,19 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
                     }.into()
                 }
         
-                fn after_init<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<Self, <__F as ::diny::backend::Format>::Error>
+                fn after_init<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     let index = Self::variant_index(data);
-                    <<::diny::backend::internal::VariantIdx as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &index, cx)
-                    .and_then(|o| match o {
-                        ::core::option::Option::Some(s) => ::core::result::Result::Ok(Self::Index(index, s)),
-                        ::core::option::Option::None    => Self::after_index(format, writer, data, cx),
-                    })
+                    match <<::diny::backend::internal::VariantIdx as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &index, cx) {
+                        ::diny::backend::StartEncodeStatus::Fini         => Self::after_index(format, writer, data, cx),
+                        ::diny::backend::StartEncodeStatus::Pending(enc) => ::diny::backend::StartEncodeStatus::Pending(Self::Index(index, enc)),
+                        ::diny::backend::StartEncodeStatus::Error(e)     => ::diny::backend::StartEncodeStatus::Error(e)            
+                    }
                 }
                 
-                fn after_index<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<Self, <__F as ::diny::backend::Format>::Error>
+                fn after_index<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
@@ -610,49 +592,28 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
                     Self::Init
                 }
 
-                fn start_encode<__W>(format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::core::option::Option<Self>, <__F as ::diny::backend::Format>::Error>
+                fn start_encode<__W>(format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     Self::after_init(format, writer, data, cx)
-                    .map(|s| match s {
-                        Self::Fini => ::core::option::Option::None,
-                        _          => ::core::option::Option::Some(s),
-                    })
                 }
         
-                fn poll_encode<__W>(&mut self, format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::core::task::Poll<::core::result::Result<(), <<Self as ::diny::backend::Encode>::Format as ::diny::backend::Format>::Error>>
+                fn poll_encode<__W>(&mut self, format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollEncodeStatus<<__F as ::diny::backend::Format>::Error>
                 where
                     __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     // Contract: 'data' must not be modified between calls
-                    let res = match self {
-                        Self::Init => {
-                            Self::after_init(format, writer, data, cx)
-                        }
+                    match self {
+                        Self::Init => #init_transition,
                         Self::Index(index, enc) => {
                             debug_assert_eq!(*index, Self::variant_index(data));
-                            ::futures::ready!(enc.poll_encode(format, writer, &index, cx))
-                            .and_then(|_| Self::after_index(format, writer, data, cx))
+                            #index_transition
                         }
                         #(#transitions)*
                         Self::Fini => {
                             debug_assert!(false);
-                            ::core::result::Result::Err(__F::invalid_input_err())
-                        }
-                    };
-        
-                    match res {
-                        ::core::result::Result::Ok(enc) => {
-                            *self = enc;
-                            match self {
-                                Self::Fini => ::core::task::Poll::Ready(::core::result::Result::Ok(())),
-                                _          => ::core::task::Poll::Pending,
-                            }
-                        },
-                        ::core::result::Result::Err(e) => {
-                            *self = Self::Fini;
-                            ::core::task::Poll::Ready(::core::result::Result::Err(e))
+                            ::diny::backend::PollEncodeStatus::Error(__F::invalid_input_err())
                         }
                     }
                 }
@@ -734,21 +695,37 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
             let type_ref = &variant.type_ref.to_token_stream();
             let this_method = &variant.this_method;
 
-            let bimap_ctor = match &variant.type_ref {
-                VariantType::Unit => quote! { |_| __Data::#data_ctor{} },
-                VariantType::TypeRef(_) => quote! { __Data::#data_ctor },
+            let status_ctor = match &variant.type_ref {
+                VariantType::Unit => quote! { |_| ::diny::backend::StartDecodeStatus::Fini(__Data::#data_ctor{}) },
+                VariantType::TypeRef(_) => quote! { |d| ::diny::backend::StartDecodeStatus::Fini(__Data::#data_ctor(d)) },
             };
 
             quote! {
-                fn #this_method<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::diny::backend::DecodeStatus<__Data, Self>, <__F as ::diny::backend::Format>::Error>
+                fn #this_method<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<__Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     <<#type_ref as ::diny::backend::Decodable>::Decoder::<__F> as ::diny::backend::Decode>::start_decode(format, reader, cx)
-                    .map(|status| status.bimap(#bimap_ctor, Self::#decode_ctor))
+                    .and_then(
+                        #status_ctor,
+                        Self::#decode_ctor
+                    )
                 }
             }
         });
+
+        let init_transition = gen_decode_chain(
+            &quote! { *self },
+            &quote! { Self },
+            quote! { Self::from_index(format, reader, cx) }
+        );
+
+        let index_transition = gen_decode_poll_chain(
+            &quote! { *self },
+            &quote! { Self },
+            quote! { dec.poll_decode(format, reader, cx) },
+            quote! { |idx| Self::after_index(idx, format, reader, cx) }
+        );
 
         let transitions = encoded_variants.iter().map(|variant| {
             let decode_ctor = &variant.ctor;
@@ -758,10 +735,16 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
                 VariantType::TypeRef(_) => quote! { #data_ctor(_d) },
             };
 
+            let poll_fini = gen_decode_poll_fini(
+                &quote! { *self },
+                &quote! { Self },
+                quote! { dec.poll_decode(format, reader, cx) },
+                quote! { |_d| __Data::#ctor }
+            );
+
             quote! {
                 Self::#decode_ctor(dec) => {
-                    ::futures::ready!(dec.poll_decode(format, reader, cx))
-                    .map(|_d| ::diny::backend::DecodeStatus::Ready(__Data::#ctor))
+                    #poll_fini
                 }
             }
         });
@@ -781,24 +764,24 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
             where
                 __F: ::diny::backend::FormatDecode,
             {
-                fn from_index<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::diny::backend::DecodeStatus<__Data, Self>, <__F as ::diny::backend::Format>::Error>
+                fn from_index<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<__Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     <<diny::backend::internal::VariantIdx as ::diny::backend::Decodable>::Decoder::<__F> as ::diny::backend::Decode>::start_decode(format, reader, cx)
-                    .and_then(|status| match status {
-                        ::diny::backend::DecodeStatus::Ready(idx) => Self::from_data(&idx, format, reader, cx),
-                        ::diny::backend::DecodeStatus::Pending(p) => ::core::result::Result::Ok(::diny::backend::DecodeStatus::Pending(Self::Index(p))),
-                    })
+                    .and_then(
+                        |idx| Self::after_index(idx, format, reader, cx),
+                        Self::Index
+                    )
                 }
         
-                fn from_data<__R>(index: &::diny::backend::internal::VariantIdx, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::diny::backend::DecodeStatus<__Data, Self>, <__F as ::diny::backend::Format>::Error>
+                fn after_index<__R>(index: ::diny::backend::internal::VariantIdx, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<__Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
-                    match **index {
+                    match *index {
                         #(#dispatch,)*
-                        _ => ::core::result::Result::Err(__F::invalid_input_err()),
+                        _ => ::diny::backend::StartDecodeStatus::Error(__F::invalid_input_err()),
                     }
                 }
                 
@@ -816,7 +799,7 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
                     Self::Init
                 }
 
-                fn start_decode<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::result::Result<::diny::backend::DecodeStatus<Self::Data, Self>, <__F as ::diny::backend::Format>::Error>
+                fn start_decode<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<Self::Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
@@ -824,40 +807,20 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
                 }
 
 
-                fn poll_decode<__R>(&mut self, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::core::task::Poll<::core::result::Result<Self::Data, <__F as ::diny::backend::Format>::Error>>
+                fn poll_decode<__R>(&mut self, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollDecodeStatus<Self::Data, <__F as ::diny::backend::Format>::Error>
                 where
                     __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
                 {
-                    let res = match self {
+                    match self {
                         Self::Init => {
-                            Self::from_index(format, reader, cx)
+                            #init_transition
                         },
                         Self::Index(dec) => {
-                            ::futures::ready!(dec.poll_decode(format, reader, cx))
-                            .and_then(|idx| Self::from_data(&idx, format, reader, cx))
+                            #index_transition
                         }
                         #(#transitions)*
                         Self::Fini => {
-                            ::core::result::Result::Err(__F::invalid_input_err())
-                        }
-                    };
-        
-                    match res {
-                        ::core::result::Result::Ok(status) => {
-                            match status {
-                                ::diny::backend::DecodeStatus::Ready(d) => {
-                                    *self = Self::Fini;
-                                    ::core::task::Poll::Ready(Ok(d))
-                                }
-                                ::diny::backend::DecodeStatus::Pending(p) => {
-                                    *self = p;
-                                    ::core::task::Poll::Pending
-                                }
-                            }
-                        },
-                        ::core::result::Result::Err(e) => {
-                            *self = Self::Fini;
-                            ::core::task::Poll::Ready(Err(e))
+                            ::diny::backend::PollDecodeStatus::Error(__F::invalid_input_err())
                         }
                     }
                 }
@@ -909,6 +872,118 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
                 __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
             {
                 ::diny::backend::DeserializeExact::new(format, reader, #decode_init)
+            }
+        }
+    }
+}
+
+
+fn gen_encode_chain(start: TokenStream) -> TokenStream {
+    quote! {
+        match #start {
+            ::diny::backend::StartEncodeStatus::Fini => {
+                *self = Self::Fini;
+                ::diny::backend::PollEncodeStatus::Fini
+            }
+            ::diny::backend::StartEncodeStatus::Pending(enc) => {
+                *self = enc;
+                ::diny::backend::PollEncodeStatus::Pending
+            }
+            ::diny::backend::StartEncodeStatus::Error(e) => {
+                *self = Self::Fini;
+                ::diny::backend::PollEncodeStatus::Error(e)
+            }
+        }
+    }
+}
+
+fn gen_encode_poll_chain(poll: TokenStream, next: TokenStream) -> TokenStream {
+    let next = gen_encode_chain(next);
+    quote! {
+        match #poll {
+            ::diny::backend::PollEncodeStatus::Fini => #next,
+            ::diny::backend::PollEncodeStatus::Pending => {
+                ::diny::backend::PollEncodeStatus::Pending
+            }
+            ::diny::backend::PollEncodeStatus::Error(e) => {
+                *self = Self::Fini;
+                ::diny::backend::PollEncodeStatus::Error(e)
+            }
+        }
+    }
+}
+
+fn gen_encode_poll_fini(poll: TokenStream) -> TokenStream {
+    quote! {
+        match #poll {
+            ::diny::backend::PollEncodeStatus::Fini => {
+                *self = Self::Fini;
+                ::diny::backend::PollEncodeStatus::Fini
+            }
+            ::diny::backend::PollEncodeStatus::Pending => {
+                ::diny::backend::PollEncodeStatus::Pending
+            }
+            ::diny::backend::PollEncodeStatus::Error(e) => {
+                *self = Self::Fini;
+                ::diny::backend::PollEncodeStatus::Error(e)
+            }
+        }
+    }
+}
+
+
+fn gen_decode_chain(lhs: &TokenStream, rhs: &TokenStream, start: TokenStream) -> TokenStream {
+    quote! {
+        match #start {
+            ::diny::backend::StartDecodeStatus::Fini(d) => {
+                #lhs = #rhs::Fini;
+                ::diny::backend::PollDecodeStatus::Fini(d)
+            }
+            ::diny::backend::StartDecodeStatus::Pending(enc) => {
+                #lhs = enc;
+                ::diny::backend::PollDecodeStatus::Pending
+            }
+            ::diny::backend::StartDecodeStatus::Error(e) => {
+                #lhs = #rhs::Fini;
+                ::diny::backend::PollDecodeStatus::Error(e)
+            }
+        }
+    }
+}
+
+fn gen_decode_poll_chain(lhs: &TokenStream, rhs: &TokenStream, poll: TokenStream, cont: TokenStream) -> TokenStream {
+    let decode_chain = gen_decode_chain(lhs, rhs, quote! { (#cont)(d) });
+    quote! {
+        match #poll {
+            #[allow(clippy::redundant_closure_call)]
+            ::diny::backend::PollDecodeStatus::Fini(d) => {
+                #decode_chain
+            }
+            ::diny::backend::PollDecodeStatus::Pending => {
+                ::diny::backend::PollDecodeStatus::Pending
+            }
+            ::diny::backend::PollDecodeStatus::Error(e) => {
+                #lhs = #rhs::Fini;
+                ::diny::backend::PollDecodeStatus::Error(e)
+            }
+        }
+    }
+}
+
+fn gen_decode_poll_fini(lhs: &TokenStream, rhs: &TokenStream, poll: TokenStream, fin: TokenStream) -> TokenStream {
+    quote! {
+        match #poll {
+            ::diny::backend::PollDecodeStatus::Fini(d) => {
+                #lhs = #rhs::Fini;
+                #[allow(clippy::redundant_closure_call)]
+                ::diny::backend::PollDecodeStatus::Fini((#fin)(d))
+            }
+            ::diny::backend::PollDecodeStatus::Pending => {
+                ::diny::backend::PollDecodeStatus::Pending
+            }
+            ::diny::backend::PollDecodeStatus::Error(e) => {
+                #lhs = #rhs::Fini;
+                ::diny::backend::PollDecodeStatus::Error(e)
             }
         }
     }

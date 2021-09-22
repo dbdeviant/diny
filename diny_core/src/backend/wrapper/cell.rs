@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use core::task::{Context, Poll};
+use core::task::Context;
 use futures::{AsyncRead, AsyncBufRead};
 use crate::{backend, AsyncSerialize};
 
@@ -25,15 +25,15 @@ where
         Self(T::Encoder::<F>::init(&data.get()))
     }
 
-    fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <<Self as backend::Encode>::Format as backend::Format>::Error>
+    fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: futures::AsyncWrite + Unpin,
     {
         T::Encoder::<F>::start_encode(format, writer, &data.get(), cx)
-        .map(|o| o.map(Self))
+        .map_pending(Self)
     }
 
-    fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
+    fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
         W: futures::AsyncWrite + Unpin,
     {

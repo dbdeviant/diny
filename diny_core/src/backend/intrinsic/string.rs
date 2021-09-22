@@ -2,7 +2,7 @@
 use alloc::string::String;
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::vec::Vec;
-use core::task::{Context, Poll};
+use core::task::Context;
 use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
 use crate::backend::{self, Encode as _, Decode as _, internal::SequenceLen};
 use crate::buffer;
@@ -24,21 +24,19 @@ impl<F> Encode<F>
 where
     F: backend::FormatEncode,
 {
-    fn after_init<W>(format: &F, writer: &mut W, data: &str, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn after_init<W>(format: &F, writer: &mut W, data: &str, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
         let len: SequenceLen = data.len().into();
         match <SequenceLen as backend::Encodable>::Encoder::<F>::start_encode(format, writer, &len, cx) {
-            Ok(o) => match o {
-                None    => Self::after_len(format, writer, *len, data, cx),
-                Some(s) => Ok(Self::Len(len, s)),
-            }
-            Err(e) => Err(e)
+            backend::StartEncodeStatus::Fini         => Self::after_len(format, writer, *len, data, cx),
+            backend::StartEncodeStatus::Pending(enc) => backend::StartEncodeStatus::Pending(Self::Len(len, enc)),
+            backend::StartEncodeStatus::Error(e)     => backend::StartEncodeStatus::Error(e)
         }
     }
 
-    fn after_len<W>(_format: &F, writer: &mut W, len: usize, data: &str, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn after_len<W>(_format: &F, writer: &mut W, len: usize, data: &str, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
@@ -46,11 +44,23 @@ where
             let send = data.as_bytes();
             let mut cur = buffer::BufferCursor::new(send);
             match cur.write_remaining(writer, send, cx) {
-                Poll::Ready(r) => r.map_or_else(|e| Err(e.into()), |()| Ok(Self::Fini)),
-                Poll::Pending => Ok(Self::Cur(cur)),
+                backend::PollEncodeStatus::Fini     => backend::StartEncodeStatus::Fini,
+                backend::PollEncodeStatus::Pending  => backend::StartEncodeStatus::Pending(Self::Cur(cur)),
+                backend::PollEncodeStatus::Error(e) => backend::StartEncodeStatus::Error(e.into()),
             }
         } else {
-            Ok(Self::Fini)
+            backend::StartEncodeStatus::Fini
+        }
+    }
+
+    fn poll_cur<W>(_format: &F, writer: &mut W, cur: &mut buffer::BufferCursor, data: &str, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        match cur.write_remaining(writer, data.as_bytes(), cx) {
+            backend::PollEncodeStatus::Fini     => backend::PollEncodeStatus::Fini,
+            backend::PollEncodeStatus::Pending  => backend::PollEncodeStatus::Pending,
+            backend::PollEncodeStatus::Error(e) => backend::PollEncodeStatus::Error(e.into()),
         }
     }
 }
@@ -66,51 +76,22 @@ where
         Self::Init
     }
 
-    fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <F as backend::Format>::Error>
+    fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
         Self::after_init(format, writer, data, cx)
-        .map(|s| match s {
-            Self::Fini => None,
-            _          => Some(s),
-        })
     }
 
-    fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
+    fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
-        let res = match self {
-            Self::Init => {
-                Self::after_init(format, writer, data, cx)
-            },
-            Self::Len(len, enc) => {
-                futures::ready!(enc.poll_encode(format, writer, len, cx))
-                .and_then(|_| Self::after_len(format, writer, **len, data, cx))
-            }
-            Self::Cur(cur) => {
-                futures::ready!(cur.write_remaining(writer, data.as_bytes(), cx))
-                .map_err(|e| e.into())
-                .map(|_| Self::Fini)
-            }
-            Self::Fini => {
-                Err(F::invalid_input_err())
-            }
-        };
-
-        match res {
-            Ok(enc) => {
-                *self = enc;
-                match self {
-                    Self::Fini => Poll::Ready(Ok(())),
-                    _          => Poll::Pending,
-                }
-            },
-            Err(e) => {
-                *self = Self::Fini;
-                Poll::Ready(Err(e))
-            }
+        match self {
+            Self::Init          => encode_chain!(*self, Self::start_encode(format, writer, data, cx)),
+            Self::Len(len, enc) => encode_poll_chain!(*self, enc.poll_encode(format, writer, len, cx), Self::after_len(format, writer, **len, data, cx)),
+            Self::Cur(cur)      => encode_poll_fini!(*self, Self::poll_cur(format, writer, cur, data, cx)),
+            Self::Fini          => backend::PollEncodeStatus::Error(F::invalid_input_err()),
         }
     }
 }
@@ -201,18 +182,18 @@ impl<F> DecodeCursor<F>
 where
     F: backend::FormatDecode,
 {
-    fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         <SequenceLen as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
-        .and_then(|s| match s {
-            backend::DecodeStatus::Ready  (len) => Self::after_len(format, reader, *len, data, cx),
-            backend::DecodeStatus::Pending(dec) => Ok(Self::Len(dec))
-        })
+        .and_then(
+            |len| Self::after_len(format, reader, *len, data, cx),
+            Self::Len,
+        )
     }
 
-    fn after_len<R>(_format: &F, reader: &mut R, len: usize, data: &mut PartialData, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn after_len<R>(_format: &F, reader: &mut R, len: usize, data: &mut PartialData, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
@@ -220,11 +201,12 @@ where
             data.reserve_exact(len);
             let mut cur = buffer::BufferCursor::with_len(len);
             match cur.fill_vec(reader, data, cx) {
-                Poll::Ready(r) => r.map_or_else(|e| Err(e.into()), |()| Ok(Self::Fini)),
-                Poll::Pending => Ok(Self::Cur(cur)),
+                backend::PollDecodeStatus::Fini(()) => backend::StartDecodeStatus::Fini(()),
+                backend::PollDecodeStatus::Pending  => backend::StartDecodeStatus::Pending(Self::Cur(cur)),
+                backend::PollDecodeStatus::Error(e) => backend::StartDecodeStatus::Error(e.into()),
             }
         } else {
-            Ok(Self::Fini)
+            backend::StartDecodeStatus::Fini(())
         }
     }
 }
@@ -247,72 +229,63 @@ where
         Self { state: Some(DecodeState::new()) }
     }
 
-    fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Self::Data, Self>, <F as backend::Format>::Error>
+    fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         let mut data = PartialData::new();
-        DecodeCursor::after_init(format, reader, &mut data, cx)
-        .and_then(|cursor| match cursor {
-            DecodeCursor::Fini => data
-                                    .into_data::<F>()
-                                    .map(backend::DecodeStatus::Ready),
-            _                  => Ok(backend::DecodeStatus::Pending(Self { state: Some(DecodeState { data, cursor }) }))
-        })
+        match DecodeCursor::after_init(format, reader, &mut data, cx) {
+            backend::StartDecodeStatus::Fini(())        =>
+                match data.into_data::<F>() {
+                    Ok(s)  => backend::StartDecodeStatus::Fini(s),
+                    Err(e) => backend::StartDecodeStatus::Error(e),
+                },
+            backend::StartDecodeStatus::Pending(cursor) => backend::StartDecodeStatus::Pending(Self { state: Some(DecodeState { data, cursor }) }),
+            backend::StartDecodeStatus::Error(e)        => backend::StartDecodeStatus::Error(e),
+        }
     }
 
-    fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, <F as backend::Format>::Error>>
+    fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
-        struct RetData;
-
-        let _ret_data = match &mut self.state {
-            None => return Poll::Ready(Err(F::invalid_input_err())),
-            Some(state) => {
-                let data = &mut state.data;
-                let res = match &mut state.cursor {
-                    DecodeCursor::Init => {
-                        DecodeCursor::after_init(format, reader, &mut state.data, cx)
-                    }
-                    DecodeCursor::Len(dec) => {
-                        futures::ready!(dec.poll_decode(format, reader, cx))
-                        .and_then(|len| DecodeCursor::after_len(format, reader, *len, data, cx))
-                    }
-                    DecodeCursor::Cur(cur) => {
-                        futures::ready!(cur.fill_vec(reader, data, cx))
-                        .map_or_else(
-                            |e | Err(e.into()),
-                            |()| Ok(DecodeCursor::Fini),
-                        )
-                    }
-                    DecodeCursor::Fini => {
-                        Err(F::invalid_input_err())
-                    }
-                };
-
-                match res {
-                    Ok(dec) => {
-                        state.cursor = dec;
-                        match state.cursor {
-                            DecodeCursor::Fini => RetData, // the one and only statement value
-                            _ => return Poll::Pending,
+        if let Some(state) = &mut self.state {
+            match &mut state.cursor {
+                DecodeCursor::Init => decode_chain!(state.cursor, DecodeCursor, DecodeCursor::after_init(format, reader, &mut state.data, cx)),
+                DecodeCursor::Len(dec) =>
+                    decode_poll_chain!(
+                        state.cursor,
+                        DecodeCursor,
+                        dec.poll_decode(format, reader, cx),
+                        |len: SequenceLen| {
+                            DecodeCursor::after_len(format, reader, *len, &mut state.data, cx)
                         }
-                    }
-                    Err(e) => {
-                        state.cursor = DecodeCursor::Fini;
-                        return Poll::Ready(Err(e))
-                    },
-                };
+                    ),
+                DecodeCursor::Cur(cur) =>
+                    decode_poll_fini!(
+                        state.cursor,
+                        DecodeCursor,
+                        match cur.fill_vec(reader, &mut state.data, cx) {
+                            backend::PollDecodeStatus::Fini(()) => backend::PollDecodeStatus::Fini(()),
+                            backend::PollDecodeStatus::Pending  => backend::PollDecodeStatus::Pending,
+                            backend::PollDecodeStatus::Error(e) => backend::PollDecodeStatus::Error(e.into())
+                        },
+                        |()| ()
+                    ),
+                DecodeCursor::Fini => return backend::PollDecodeStatus::Error(F::invalid_input_err()),
             }
-        };
-
-        // SAFETY:
-        // The only way this code gets executed is if the state existed and reached
-        // the DecodeCursor::Fini state.  That cursor state is only reached once all
-        // string bytes have been read, and this next statement consumes the outer
-        // state in order to produce the returned string
-        Poll::Ready(self.state.take().unwrap().data.into_data::<F>())
+            // SAFETY:
+            // The only way this code gets executed is if the outer state existed and reached
+            // the DecodeCursor::Fini state as a result of this call.  That cursor state is
+            // only reached once all array items have been created, and this next statement
+            // consumes the outer state in order to produce the returned array.
+            .and_then(|()| match self.state.take().unwrap().data.into_data::<F>() {
+                Ok(s)  => backend::PollDecodeStatus::Fini(s),
+                Err(e) => backend::PollDecodeStatus::Error(e),
+            })
+        } else {
+            backend::PollDecodeStatus::Error(F::invalid_input_err())
+        }
     }
 }
 

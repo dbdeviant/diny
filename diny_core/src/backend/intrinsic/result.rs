@@ -1,4 +1,4 @@
-use core::task::{Context, Poll};
+use core::task::Context;
 use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
 use crate::backend::{self, Encode as _, Decode as _};
 use backend::internal::VariantIdx;
@@ -32,19 +32,19 @@ where
         }.into()
     }
 
-    fn after_init<W>(format: &F, writer: &mut W, data: &Data<O, E>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn after_init<W>(format: &F, writer: &mut W, data: &Data<O, E>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
         let index = Self::variant_index(data);
-        <VariantIdx as backend::Encodable>::Encoder::<F>::start_encode(format, writer, &index, cx)
-        .and_then(|o| match o {
-            Some(s) => Ok(Self::Index(index, s)),
-            None    => Self::after_index(format, writer, data, cx),
-        })
+        match <VariantIdx as backend::Encodable>::Encoder::<F>::start_encode(format, writer, &index, cx) {
+            backend::StartEncodeStatus::Fini         => Self::after_index(format, writer, data, cx),
+            backend::StartEncodeStatus::Pending(enc) => backend::StartEncodeStatus::Pending(Self::Index(index, enc)),
+            backend::StartEncodeStatus::Error(e)     => backend::StartEncodeStatus::Error(e)
+        }
     }
 
-    fn after_index<W>(format: &F, writer: &mut W, data: &Data<O, E>, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn after_index<W>(format: &F, writer: &mut W, data: &Data<O, E>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
@@ -54,26 +54,20 @@ where
         }
     }
 
-    fn ok<W>(format: &F, writer: &mut W, data: &O, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn ok<W>(format: &F, writer: &mut W, data: &O, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
         <O as backend::Encodable>::Encoder::<F>::start_encode(format, writer, data, cx)
-        .map(|o| match o {
-            None    => Self::Fini,
-            Some(s) => Self::V0(s),
-        })
+        .map_pending(Self::V0)
     }
 
-    fn err<W>(format: &F, writer: &mut W, data: &E, cx: &mut Context<'_>) -> Result<Self, <F as backend::Format>::Error>
+    fn err<W>(format: &F, writer: &mut W, data: &E, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
         <E as backend::Encodable>::Encoder::<F>::start_encode(format, writer, data, cx)
-        .map(|o| match o {
-            None    => Self::Fini,
-            Some(s) => Self::V1(s),
-        })
+        .map_pending(Self::V1)
     }
 }
 
@@ -90,58 +84,38 @@ where
         Self::Init
     }
 
-    fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <F as backend::Format>::Error>
+    fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
         Self::after_init(format, writer, data, cx)
-        .map(|s| match s {
-            Self::Fini => None,
-            _          => Some(s),
-        })
     }
 
-    fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
+    fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
         W: AsyncWrite + Unpin,
     {
-        let res = match self {
-            Self::Init => {
-                Self::after_init(format, writer, data, cx)
-            },
-            Self::Index(idx, enc) => {
-                futures::ready!(enc.poll_encode(format, writer, idx, cx))
-                .and_then(|_| Self::after_index(format, writer, data, cx))
-            }
-            Self::V0(enc) => {
-                match data {
-                    Data::Ok(d) => futures::ready!(enc.poll_encode(format, writer, d, cx)).map(|_| Self::Fini),
-                    _ => Err(F::invalid_input_err()),
-                }
-            }
-            Self::V1(enc) => {
-                match data {
-                    Data::Err(e) => futures::ready!(enc.poll_encode(format, writer, e, cx)).map(|_| Self::Fini),
-                    _ => Err(F::invalid_input_err()),
-                }
-            }
-            Self::Fini => {
-                Err(F::invalid_input_err())
-            }
-        };
 
-        match res {
-            Ok(enc) => {
-                *self = enc;
-                match self {
-                    Self::Fini => Poll::Ready(Ok(())),
-                    _          => Poll::Pending,
-                }
-            },
-            Err(e) => {
-                *self = Self::Fini;
-                Poll::Ready(Err(e))
-            }
+        match self {
+            Self::Init => encode_chain!(*self, Self::after_init(format, writer, data, cx)),
+            Self::Index(idx, enc) => encode_poll_chain!(*self, enc.poll_encode(format, writer, idx, cx), Self::after_index(format, writer, data, cx)),
+            Self::V0(enc) =>
+                match data {
+                    Ok(d) => encode_poll_fini!(*self, enc.poll_encode(format, writer, d, cx)),
+                    _ => {
+                        *self = Self::Fini;
+                        backend::PollEncodeStatus::Error(F::invalid_input_err())
+                    }
+                },
+            Self::V1(enc) =>
+                match data {
+                    Err(e) => encode_poll_fini!(*self, enc.poll_encode(format, writer, e, cx)),
+                    _ => {
+                        *self = Self::Fini;
+                        backend::PollEncodeStatus::Error(F::invalid_input_err())
+                    }
+                },
+            Self::Fini => backend::PollEncodeStatus::Error(F::invalid_input_err())
         }
     }
 }
@@ -186,8 +160,8 @@ where
 {
     Init,
     Index(<VariantIdx as backend::Decodable>::Decoder<F>),
-    None(<O as backend::Decodable>::Decoder<F>),
-    Some(<E as backend::Decodable>::Decoder<F>),
+    Ok(<O as backend::Decodable>::Decoder<F>),
+    Err(<E as backend::Decodable>::Decoder<F>),
     Fini,
 }
 
@@ -197,42 +171,48 @@ where
     O: backend::Decodable,
     E: backend::Decodable,
 {
-    fn after_init<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Data<O, E>, Self>, <F as backend::Format>::Error>
+    fn after_init<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<O, E>, Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         <VariantIdx as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
-        .and_then(|status| match status {
-            backend::DecodeStatus::Ready(idx) => Self::after_index(&idx, format, reader, cx),
-            backend::DecodeStatus::Pending(p) => Ok(backend::DecodeStatus::Pending(Self::Index(p))),
-        })
+        .and_then(
+            |idx| Self::after_index(idx, format, reader, cx),
+            Self::Index,
+        )
     }
 
-    fn after_index<R>(index: &VariantIdx, format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Data<O, E>, Self>, <F as backend::Format>::Error>
+    fn after_index<R>(index: VariantIdx, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<O, E>, Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
-        match **index {
+        match *index {
             0 => Self::ok (format, reader, cx),
             1 => Self::err(format, reader, cx),
-            _ => Err(F::invalid_input_err()),
+            _ => backend::StartDecodeStatus::Error(F::invalid_input_err()),
         }
     }
 
-    fn ok<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Data<O, E>, Self>, <F as backend::Format>::Error>
+    fn ok<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<O, E>, Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         <O as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
-        .map(|status| status.bimap(Data::Ok, Self::None))
+        .and_then(
+            |o| backend::StartDecodeStatus::Fini(Data::Ok(o)),
+            Self::Ok,
+        )
     }
 
-    fn err<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Data<O, E>, Self>, <F as backend::Format>::Error>
+    fn err<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<O, E>, Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         <E as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
-        .map(|status| status.bimap(Data::Err, Self::Some))
+        .and_then(
+            |e| backend::StartDecodeStatus::Fini(Data::Err(e)),
+            Self::Err,
+        )
     }
 }
 
@@ -249,55 +229,23 @@ where
         Self::Init
     }
 
-    fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Self::Data, Self>, <F as backend::Format>::Error>
+    fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
         Self::after_init(format, reader, cx)
     }
 
-    fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, <F as backend::Format>::Error>>
+    fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
         R: AsyncRead + AsyncBufRead + Unpin,
     {
-        let res = match self {
-            Decode::Init => {
-                Self::after_init(format, reader, cx)
-            },
-            Decode::Index(dec) => {
-                futures::ready!(dec.poll_decode(format, reader, cx))
-                .and_then(|idx| Self::after_index(&idx, format, reader, cx))
-            }
-            Decode::None(dec) => {
-                futures::ready!(dec.poll_decode(format, reader, cx))
-                .map(|d| backend::DecodeStatus::Ready(Data::Ok(d)))
-            }
-            Decode::Some(dec) => {
-                futures::ready!(dec.poll_decode(format, reader, cx))
-                .map(|e| backend::DecodeStatus::Ready(Data::Err(e)))
-            }
-            Decode::Fini => {
-                Err(F::invalid_input_err())
-            }
-        };
-
-        match res {
-            Ok(status) => {
-                match status {
-                    backend::DecodeStatus::Ready(d) => {
-                        *self = Decode::Fini;
-                        Poll::Ready(Ok(d))
-                    }
-                    backend::DecodeStatus::Pending(p) => {
-                        *self = p;
-                        Poll::Pending
-                    }
-                }
-            },
-            Err(e) => {
-                *self = Decode::Fini;
-                Poll::Ready(Err(e))
-            }
+        match self {
+            Self::Init       => decode_chain!(*self, Self, Self::after_init(format, reader, cx)),
+            Self::Index(dec) => decode_poll_chain!(*self, Self, dec.poll_decode(format, reader, cx), |idx| Self::after_index(idx, format, reader, cx)),
+            Self::Ok(dec)    => decode_poll_fini!(*self, Self, dec.poll_decode(format, reader, cx), |o| Ok(o)),
+            Self::Err(dec)   => decode_poll_fini!(*self, Self, dec.poll_decode(format, reader, cx), Err),
+            Self::Fini       => backend::PollDecodeStatus::Error(F::invalid_input_err()),
         }
     }
 }

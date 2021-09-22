@@ -1,8 +1,8 @@
 macro_rules! numeric_def {
     ($t:ty, $bytes:literal) => {
-        use core::task::{Context, Poll};
+        use core::task::Context;
         use futures::{AsyncRead, AsyncBufRead, AsyncWrite};    
-        use diny::buffer::buffer_state::BufferState;
+        use diny::{backend, buffer::{buffer_state::BufferState, BufferEncode}};
         use $crate::Formatter as ThisFormat;
 
         type Error = <ThisFormat as diny::backend::Format>::Error;
@@ -20,7 +20,19 @@ macro_rules! numeric_def {
                 Encoder(BufferState::with_contents(data.to_le_bytes()))
             }
         
-            fn poll_encode_buffer<W>(&mut self, _format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> Poll<Result<(), Error>>
+            fn start_encode_buffer<W>(_format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <<Self as BufferEncode>::Format as backend::Format>::Error>
+            where
+                W: AsyncWrite + Unpin,
+            {
+                let mut enc = Self::new(data);
+                match enc.0.start_write(writer, cx) {
+                    backend::PollEncodeStatus::Fini     => backend::StartEncodeStatus::Fini,
+                    backend::PollEncodeStatus::Pending  => backend::StartEncodeStatus::Pending(enc),
+                    backend::PollEncodeStatus::Error(e) => backend::StartEncodeStatus::Error(e),
+                }
+            }
+
+            fn poll_encode_buffer<W>(&mut self, _format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
             where
                 W: AsyncWrite + Unpin,
             {
@@ -38,13 +50,28 @@ macro_rules! numeric_def {
                 Self(BufferState::init())
             }
         
-            fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, Error>>
+            fn start_decode<R>(_format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <<Self as backend::Decode>::Format as backend::Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
-                let this = &mut *self;
-                futures::ready!(this.0.read_remaining(reader, cx))?;
-                Poll::Ready(Ok(Data::from_le_bytes(*self.0.buffer())))
+                let mut decode = Self::init();
+                match (&mut decode.0).start_read(reader, cx) {
+                    backend::PollDecodeStatus::Fini(())    => backend::StartDecodeStatus::Fini(Data::from_le_bytes(*decode.0.buffer())),
+                    backend::PollDecodeStatus::Pending    => backend::StartDecodeStatus::Pending(decode),
+                    backend::PollDecodeStatus::Error(err) => backend::StartDecodeStatus::Error(err),
+                }
+            }
+
+            fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
+            where
+                R: AsyncRead + AsyncBufRead + Unpin,
+            {
+                match (&mut self.0).read_remaining(reader, cx) {
+                    backend::PollDecodeStatus::Fini(())   => backend::PollDecodeStatus::Fini(Data::from_le_bytes(*self.0.buffer())),
+                    backend::PollDecodeStatus::Pending    => backend::PollDecodeStatus::Pending,
+                    backend::PollDecodeStatus::Error(err) => backend::PollDecodeStatus::Error(err),
+
+                }
             }
         }
 
@@ -55,9 +82,9 @@ macro_rules! numeric_def {
 
 macro_rules! usize_wrapper_def {
     ($t: ty, $repr: ty, $m: path) => {
-        use core::{convert::TryInto, task::{Context, Poll}};
+        use core::{convert::TryInto, task::Context};
         use futures::{AsyncRead, AsyncBufRead, AsyncWrite};        
-        use diny::backend::Format;
+        use diny::backend::{self, Format};
         
         use crate::{
             Formatter as ThisFormat,
@@ -81,13 +108,29 @@ macro_rules! usize_wrapper_def {
                 )
             }
         
-            fn poll_encode_buffer<W>(&mut self, format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> Poll<Result<(), Error>>
+            fn start_encode_buffer<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <<Self as diny::buffer::BufferEncode>::Format as backend::Format>::Error>
+            where
+                W: AsyncWrite + Unpin,
+            {
+                match TryInto::<$repr>::try_into(Into::<usize>::into(*data)) {
+                    Ok(n) => {
+                        match <wrapper::Encoder as diny::backend::Encode>::start_encode(format, writer, &n.into(), cx) {
+                            backend::StartEncodeStatus::Fini         => backend::StartEncodeStatus::Fini,
+                            backend::StartEncodeStatus::Pending(enc) => backend::StartEncodeStatus::Pending(Self(Some(enc))),
+                            backend::StartEncodeStatus::Error(e)     => backend::StartEncodeStatus::Error(e),
+                        }
+                    }
+                    Err(_) => backend::StartEncodeStatus::Error(ThisFormat::invalid_data_err()),
+                }
+            }
+
+            fn poll_encode_buffer<W>(&mut self, format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
             where
                 W: AsyncWrite + Unpin,
             {
                 match &mut self.0 {
-                    None    => Poll::Ready(Err(ThisFormat::invalid_data_err())),
-                    Some(w) => w.poll_encode_buffer(format, writer, cx),
+                    None      => backend::PollEncodeStatus::Error(ThisFormat::invalid_data_err()),
+                    Some(enc) => enc.poll_encode_buffer(format, writer, cx),
                 }
             }
         }
@@ -102,17 +145,32 @@ macro_rules! usize_wrapper_def {
                 Self(wrapper::Decoder::init())
             }
         
-            fn poll_decode<R>(&mut self, format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, Error>>
+            fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::StartDecodeStatus<Self::Data, Self, <<Self as diny::backend::Decode>::Format as Format>::Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
-                let n = futures::ready!(self.0.poll_decode(format, reader, cx))?;
-                Poll::Ready(
-                    match TryInto::<usize>::try_into(n) {
-                        Ok (n) => Ok(n.into()),
-                        Err(_) => Err(ThisFormat::invalid_data_err()),
-                    }
-                )
+                match wrapper::Decoder::start_decode(format, reader, cx) {
+                    diny::backend::StartDecodeStatus::Fini(n) => match TryInto::<usize>::try_into(n) {
+                        Ok (n) => diny::backend::StartDecodeStatus::Fini(n.into()),
+                        Err(_) => diny::backend::StartDecodeStatus::Error(ThisFormat::invalid_data_err()),
+                    },
+                    diny::backend::StartDecodeStatus::Pending(dec) => diny::backend::StartDecodeStatus::Pending(Decoder(dec)),
+                    diny::backend::StartDecodeStatus::Error(e) => diny::backend::StartDecodeStatus::Error(e),
+                }
+            }
+
+            fn poll_decode<R>(&mut self, format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
+            where
+                R: AsyncRead + AsyncBufRead + Unpin,
+            {
+                match self.0.poll_decode(format, reader, cx) {
+                    diny::backend::PollDecodeStatus::Fini(n) => match TryInto::<usize>::try_into(n) {
+                        Ok (n) => diny::backend::PollDecodeStatus::Fini(n.into()),
+                        Err(_) => diny::backend::PollDecodeStatus::Error(ThisFormat::invalid_data_err()),
+                    },
+                    diny::backend::PollDecodeStatus::Pending => diny::backend::PollDecodeStatus::Pending,
+                    diny::backend::PollDecodeStatus::Error(e) => diny::backend::PollDecodeStatus::Error(e),
+                }
             }
         }
         

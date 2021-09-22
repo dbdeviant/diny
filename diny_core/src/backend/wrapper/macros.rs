@@ -23,15 +23,15 @@ macro_rules! wrapper_encode_impl_deref {
                 Self(T::Encoder::<F>::init(data))
             }
         
-            fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <<Self as backend::Encode>::Format as backend::Format>::Error>
+            fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
             where
                 W: futures::AsyncWrite + Unpin,
             {
                 T::Encoder::<F>::start_encode(format, writer, data, cx)
-                .map(|o| o.map(Self))
+                .map_pending(Self)
             }
         
-            fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
+            fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
             where
                 W: futures::AsyncWrite + Unpin,
             {
@@ -103,23 +103,23 @@ macro_rules! wrapper_decode_impl {
                 Self(T::Decoder::<F>::init(), PhantomData)
             }
         
-            fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> Result<backend::DecodeStatus<Self::Data, Self>, <<Self as backend::Decode>::Format as backend::Format>::Error>
+            fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
             where
                 R: futures::AsyncRead + AsyncBufRead + Unpin,
             {
                 T::Decoder::<F>::start_decode(format, reader, cx)
-                .map(|o| o.bimap(
+                .bimap(
                     Data::<T>::new,
                     |s| Self(s, PhantomData),
-                ))
+                )
             }
         
-            fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> Poll<Result<Self::Data, <<Self as backend::Decode>::Format as backend::Format>::Error>>
+            fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
             where
                 R: futures::AsyncRead + AsyncBufRead + Unpin,
              {
-                let d = futures::ready!(self.0.poll_decode(format, reader, cx))?;
-                Poll::Ready(Ok(Data::<T>::new(d)))
+                self.0.poll_decode(format, reader, cx)
+                .map(Data::<T>::new)
             }
         }
     }
@@ -163,7 +163,7 @@ macro_rules! wrapper_async_deserialize_impl {
 macro_rules! wrapper_deref {
     ($t: ty) => {
         use core::marker::PhantomData;
-        use core::task::{Context, Poll};
+        use core::task::Context;
         use futures::{AsyncRead, AsyncBufRead};
         use crate::{backend, AsyncSerialize};
 

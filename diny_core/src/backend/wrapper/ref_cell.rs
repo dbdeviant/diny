@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use core::task::{Context, Poll};
+use core::task::Context;
 use futures::{AsyncRead, AsyncBufRead};
 use crate::{backend, AsyncSerialize};
 
@@ -35,28 +35,28 @@ where
         }
     }
 
-    fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Result<Option<Self>, <<Self as backend::Encode>::Format as backend::Format>::Error>
+    fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
         W: futures::AsyncWrite + Unpin,
     {
         match &data.try_borrow() {
             Ok(ref d) => 
                 T::Encoder::<F>::start_encode(format, writer, d, cx)
-                .map(|o| o.map(|s| Self(Some(s)))),
-            Err(_) => Err(<Self as backend::Encode>::Format::invalid_input_err()),
+                .map_pending(|enc| Self(Some(enc))),
+            Err(_) => backend::StartEncodeStatus::Error(<Self as backend::Encode>::Format::invalid_input_err()),
         }
     }
 
-    fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> Poll<Result<(), <<Self as backend::Encode>::Format as backend::Format>::Error>>
+    fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
         W: futures::AsyncWrite + Unpin,
     {
-        Poll::Ready(match &data.try_borrow() {
+        match &data.try_borrow() {
             Ok(ref d) => match &mut self.0 {
-                Some(e) => futures::ready!(e.poll_encode(format, writer, d, cx)),
-                None    => Err(<Self as backend::Encode>::Format::invalid_input_err()),
+                Some(e) => e.poll_encode(format, writer, d, cx),
+                None    => backend::PollEncodeStatus::Error(<Self as backend::Encode>::Format::invalid_input_err()),
             },
-            Err(_) => Err(<Self as backend::Encode>::Format::invalid_input_err()),
-        })
+            Err(_) => backend::PollEncodeStatus::Error(<Self as backend::Encode>::Format::invalid_input_err()),
+        }
     }
 }

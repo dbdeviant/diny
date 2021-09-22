@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, pin::Pin, task::{Context, Poll}};
 use futures::AsyncWrite;
-use crate::backend::{FormatEncode, FormatSerialize};
+use crate::backend::{self, FormatEncode, FormatSerialize};
 use crate::buffer::BufferEncode;
 
 /// A convenience structure that can serialize any implemenation of [BufferEncode].
@@ -47,6 +47,10 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = &mut *self;
-        this.encode.poll_encode_buffer(this.format, &mut this.writer, cx)
+        match this.encode.poll_encode_buffer(this.format, &mut this.writer, cx) {
+            backend::PollEncodeStatus::Fini     => Poll::Ready(Ok(())),
+            backend::PollEncodeStatus::Pending  => Poll::Pending,
+            backend::PollEncodeStatus::Error(e) => Poll::Ready(Err(e)),
+        }
     }
 }
