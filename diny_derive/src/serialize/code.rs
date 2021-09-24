@@ -249,7 +249,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
         let init_transition = gen_decode_chain(
             &quote! { state.cursor },
             &quote! { __DecodeCursor },
-            quote! { __DecodeCursor::after_init(format, reader, state.data.as_mut().unwrap(), cx) },
+            quote! { __DecodeCursor::after_init(format, reader, &mut state.data, cx) },
         );
 
         let transitions = encoded_fields.iter().map(|field| {
@@ -258,7 +258,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
 
             let next = &field.next_method.as_ref().map_or_else(
                 ||  quote! { ::diny::backend::StartDecodeStatus::Fini(()) },
-                |n| quote! { __DecodeCursor::#n(format, reader, state.data.as_mut().unwrap(), cx) },
+                |n| quote! { __DecodeCursor::#n(format, reader, &mut state.data, cx) },
             );
 
             let poll_chain = gen_decode_poll_chain(
@@ -267,7 +267,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                 quote! { dec.poll_decode(format, reader, cx) },
                 quote! {
                     |d| {
-                        state.data.as_mut().unwrap().#field_name = ::core::option::Option::Some(d);
+                        state.data.#field_name = ::core::option::Option::Some(d);
                         #next
                     }                    
                 }
@@ -322,7 +322,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             where
                 __F: ::diny::backend::FormatDecode,
             {
-                data: ::core::option::Option<__PartialData>,
+                data: __PartialData,
                 cursor: __DecodeCursor<__F>,
             }
 
@@ -332,7 +332,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             {
                 pub fn new() -> Self {
                     Self {
-                        data: ::core::option::Option::Some(__PartialData::new()),
+                        data: __PartialData::new(),
                         cursor: __DecodeCursor::Init,
                     }
                 }
@@ -378,7 +378,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                                 ::core::option::Option::None => ::diny::backend::StartDecodeStatus::Error(__F::invalid_data_err()),
                                 ::core::option::Option::Some(d) => ::diny::backend::StartDecodeStatus::Fini(d),
                             },
-                        ::diny::backend::StartDecodeStatus::Pending(cursor) => ::diny::backend::StartDecodeStatus::Pending(Self { state: ::core::option::Option::Some(__DecodeState { data: ::core::option::Option::Some(data), cursor }) }),
+                        ::diny::backend::StartDecodeStatus::Pending(cursor) => ::diny::backend::StartDecodeStatus::Pending(Self { state: ::core::option::Option::Some(__DecodeState { data, cursor }) }),
                         ::diny::backend::StartDecodeStatus::Error(e) => ::diny::backend::StartDecodeStatus::Error(e),
                     }
                 }
@@ -396,7 +396,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
                             #(#transitions)*
                             __DecodeCursor::Fini => return ::diny::backend::PollDecodeStatus::Error(__F::invalid_input_err()),
                         }
-                        .and_then(|()| match self.state.take().unwrap().data.unwrap().into_data() {
+                        .and_then(|()| match self.state.take().unwrap().data.into_data() {
                             ::core::option::Option::None => ::diny::backend::PollDecodeStatus::Error(__F::invalid_data_err()),
                             ::core::option::Option::Some(d) => ::diny::backend::PollDecodeStatus::Fini(d),
                         })
