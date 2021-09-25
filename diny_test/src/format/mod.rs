@@ -3,6 +3,7 @@ mod macros;
 
 pub mod unit;
 pub mod bool;
+pub mod char;
 
 pub mod i8   { numeric_def!(i8  , 1 ); }
 pub mod i16  { numeric_def!(i16 , 2 ); }

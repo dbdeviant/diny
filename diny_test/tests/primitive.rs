@@ -120,3 +120,10 @@ fn can_serialize_i128() {
     test_serialize_exact::<i128, LEN>(&(i128::MAX-1));
     test_serialize_exact::<i128, LEN>(& i128::MAX   );
 }
+
+#[test]
+fn can_serialize_char() {
+    const LEN: usize = 4;
+    test_serialize_exact::<char, LEN>(& ' ');
+    test_serialize_exact::<char, LEN>(& '🔥');    
+}

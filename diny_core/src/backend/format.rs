@@ -22,16 +22,20 @@ pub trait Format {
 pub trait FormatEncode: Format {
     type EncodeUnit: Encode<Data=()  , Format=Self>;
     type EncodeBool: Encode<Data=bool, Format=Self>;
+
     type EncodeI8  : Encode<Data=i8  , Format=Self>;
     type EncodeI16 : Encode<Data=i16 , Format=Self>;
     type EncodeI32 : Encode<Data=i32 , Format=Self>;
     type EncodeI64 : Encode<Data=i64 , Format=Self>;
     type EncodeI128: Encode<Data=i128, Format=Self>;
+
     type EncodeU8  : Encode<Data=u8  , Format=Self>;
     type EncodeU16 : Encode<Data=u16 , Format=Self>;
     type EncodeU32 : Encode<Data=u32 , Format=Self>;
     type EncodeU64 : Encode<Data=u64 , Format=Self>;
     type EncodeU128: Encode<Data=u128, Format=Self>;
+
+    type EncodeChar: Encode<Data=char, Format=Self>;
 
     type EncodeVariantIdx : Encode<Data=VariantIdx , Format=Self>;
     type EncodeSequenceLen: Encode<Data=SequenceLen, Format=Self>;
@@ -54,6 +58,8 @@ pub trait FormatSerialize: FormatEncode {
     type SerializeU64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
     type SerializeU128<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
 
+    type SerializeChar<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
+
     type SerializeVariantIdx <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
     type SerializeSequenceLen<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
 
@@ -72,6 +78,8 @@ pub trait FormatSerialize: FormatEncode {
     fn serialize_u64 <'w, W>(&'w self, writer: &'w mut W, data: &u64 ) -> Self::SerializeU64 <'w, W> where W: AsyncWrite + Unpin;
     fn serialize_u128<'w, W>(&'w self, writer: &'w mut W, data: &u128) -> Self::SerializeU128<'w, W> where W: AsyncWrite + Unpin;
 
+    fn serialize_char<'w, W>(&'w self, writer: &'w mut W, data: &char) -> Self::SerializeChar<'w, W> where W: AsyncWrite + Unpin;
+
     fn serialize_variant_idx <'w, W>(&'w self, writer: &'w mut W, data: &VariantIdx ) -> Self::SerializeVariantIdx <'w, W> where W: AsyncWrite + Unpin;
     fn serialize_sequence_len<'w, W>(&'w self, writer: &'w mut W, data: &SequenceLen) -> Self::SerializeSequenceLen<'w, W> where W: AsyncWrite + Unpin;
 }
@@ -80,16 +88,20 @@ pub trait FormatSerialize: FormatEncode {
 pub trait FormatDecode: Format {
     type DecodeUnit: Decode<Data=()  , Format=Self>;
     type DecodeBool: Decode<Data=bool, Format=Self>;
+
     type DecodeI8  : Decode<Data=i8  , Format=Self>;
     type DecodeI16 : Decode<Data=i16 , Format=Self>;
     type DecodeI32 : Decode<Data=i32 , Format=Self>;
     type DecodeI64 : Decode<Data=i64 , Format=Self>;
     type DecodeI128: Decode<Data=i128, Format=Self>;
+
     type DecodeU8  : Decode<Data=u8  , Format=Self>;
     type DecodeU16 : Decode<Data=u16 , Format=Self>;
     type DecodeU32 : Decode<Data=u32 , Format=Self>;
     type DecodeU64 : Decode<Data=u64 , Format=Self>;
     type DecodeU128: Decode<Data=u128, Format=Self>;
+
+    type DecodeChar: Decode<Data=char, Format=Self>;
 
     type DecodeVariantIdx : Decode<Data=VariantIdx , Format=Self>;
     type DecodeSequenceLen: Decode<Data=SequenceLen, Format=Self>;
@@ -112,6 +124,8 @@ pub trait FormatDeserialize: FormatDecode {
     type DeserializeU64 <'r, R>: Future<Output=Result<u64 , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
     type DeserializeU128<'r, R>: Future<Output=Result<u128, Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
 
+    type DeserializeChar<'r, R>: Future<Output=Result<char, Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
+
     type DeserializeVariantIdx <'r, R>: Future<Output=Result<VariantIdx , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
     type DeserializeSequenceLen<'r, R>: Future<Output=Result<SequenceLen, Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
 
@@ -129,6 +143,8 @@ pub trait FormatDeserialize: FormatDecode {
     fn deserialize_u32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU32 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
     fn deserialize_u64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU64 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
     fn deserialize_u128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU128<'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
+
+    fn deserialize_char<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar<'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
 
     fn deserialize_variant_idx <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeVariantIdx <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
     fn deserialize_sequence_len<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeSequenceLen<'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
