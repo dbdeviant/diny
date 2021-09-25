@@ -19,6 +19,50 @@ pub enum StartDecodeStatus<Dta, Dec, Err> {
     Error(Err),
 }
 
+impl<Dta, Dec, Err> StartDecodeStatus<Dta, Dec, Err> {
+    /// Convenience method for functorially mapping either variant to a new status.
+    #[inline(always)]
+    pub fn bimap<Fdta, Gdec, F: FnOnce(Dta) -> Fdta, G: FnOnce(Dec) -> Gdec>(self, f: F, g: G) -> StartDecodeStatus<Fdta, Gdec, Err> {
+        match self {
+            Self::Fini   (dta) => StartDecodeStatus::Fini   (f(dta)),
+            Self::Pending(dec) => StartDecodeStatus::Pending(g(dec)),
+            Self::Error  (err) => StartDecodeStatus::Error    (err),
+        }
+    }
+
+    /// Convenience method for functorially mapping either variant to a new status.
+    #[inline(always)]
+    pub fn and_then<Fdta, Gdec, F, G>(self, f: F, g: G) -> StartDecodeStatus<Fdta, Gdec, Err>
+    where
+        F: FnOnce(Dta) -> StartDecodeStatus<Fdta, Gdec, Err>,
+        G: FnOnce(Dec) -> Gdec,
+    {
+        match self {
+            Self::Fini   (dta) => f(dta),
+            Self::Pending(dec) => StartDecodeStatus::Pending(g(dec)),
+            Self::Error  (err) => StartDecodeStatus::Error    (err),
+        }
+    }
+}
+
+impl<Dta, Dec, Err> From<Dta> for StartDecodeStatus<Dta, Dec, Err> {
+    #[inline(always)]
+    fn from(data: Dta) -> Self {
+        StartDecodeStatus::Fini(data)
+    }
+}
+
+impl<Dta, Dec, Err> From<Result<Dta, Err>> for StartDecodeStatus<Dta, Dec, Err> {
+    #[inline(always)]
+    fn from(result: Result<Dta, Err>) -> Self {
+        match result {
+            Ok(o)  => StartDecodeStatus::Fini(o),
+            Err(e) => StartDecodeStatus::Error(e),
+        }
+    }
+}
+
+
 pub enum PollDecodeStatus<Dta, Err> {
     /// The operation has successfully completed [decoding](Decode) the data.
     Fini(Dta),
@@ -71,38 +115,19 @@ impl<Dta, Err> PollDecodeStatus<Dta, Err> {
     }
 }
 
+impl<Dta, Err> From<Dta> for PollDecodeStatus<Dta, Err> {
+    #[inline(always)]
+    fn from(data: Dta) -> Self {
+        PollDecodeStatus::Fini(data)
+    }
+}
+
 impl<Dta, Err> From<Result<Dta, Err>> for PollDecodeStatus<Dta, Err> {
     #[inline(always)]
     fn from(result: Result<Dta, Err>) -> Self {
         match result {
             Ok(o)  => PollDecodeStatus::Fini(o),
             Err(e) => PollDecodeStatus::Error(e),
-        }
-    }
-}
-
-impl<Dta, Dec, Err> StartDecodeStatus<Dta, Dec, Err> {
-    /// Convenience method for functorially mapping either variant to a new status.
-    #[inline(always)]
-    pub fn bimap<Fdta, Gdec, F: FnOnce(Dta) -> Fdta, G: FnOnce(Dec) -> Gdec>(self, f: F, g: G) -> StartDecodeStatus<Fdta, Gdec, Err> {
-        match self {
-            Self::Fini   (dta) => StartDecodeStatus::Fini   (f(dta)),
-            Self::Pending(dec) => StartDecodeStatus::Pending(g(dec)),
-            Self::Error  (err) => StartDecodeStatus::Error    (err),
-        }
-    }
-
-    /// Convenience method for functorially mapping either variant to a new status.
-    #[inline(always)]
-    pub fn and_then<Fdta, Gdec, F, G>(self, f: F, g: G) -> StartDecodeStatus<Fdta, Gdec, Err>
-    where
-        F: FnOnce(Dta) -> StartDecodeStatus<Fdta, Gdec, Err>,
-        G: FnOnce(Dec) -> Gdec,
-    {
-        match self {
-            Self::Fini   (dta) => f(dta),
-            Self::Pending(dec) => StartDecodeStatus::Pending(g(dec)),
-            Self::Error  (err) => StartDecodeStatus::Error    (err),
         }
     }
 }

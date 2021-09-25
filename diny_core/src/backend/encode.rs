@@ -10,6 +10,7 @@ pub enum StartEncodeStatus<Enc, Err> {
 }
 
 impl<Enc, Err> StartEncodeStatus<Enc, Err> {
+    #[inline(always)]
     pub fn map_pending<F, Enc2>(self, f: F) -> StartEncodeStatus<Enc2, Err>
     where
         F: FnOnce(Enc) -> Enc2,
@@ -26,6 +27,17 @@ pub enum PollEncodeStatus<Err> {
     Fini,
     Pending,
     Error(Err),
+}
+
+impl<Err> PollEncodeStatus<Err> {
+    #[inline(always)]
+    pub fn lift<Enc>(self, enc: Enc) -> StartEncodeStatus<Enc, Err> {
+        match self {
+            PollEncodeStatus::Fini       => StartEncodeStatus::Fini,
+            PollEncodeStatus::Pending    => StartEncodeStatus::Pending(enc),
+            PollEncodeStatus::Error(err) => StartEncodeStatus::Error(err),
+        }
+    }
 }
 
 /// Attempt to encode a data structure to an [asynchronous writer](AsyncWrite)

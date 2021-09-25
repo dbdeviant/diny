@@ -1,15 +1,5 @@
-macro_rules! numeric_def {
-    ($t:ty, $bytes:literal) => {
-        use core::task::Context;
-        use futures::{AsyncRead, AsyncBufRead, AsyncWrite};    
-        use diny::{backend, buffer::{buffer_state::BufferState, BufferEncode}};
-        use $crate::Formatter as ThisFormat;
-
-        type Error = <ThisFormat as diny::backend::Format>::Error;
-
-        type Data = $t;
-        const BUF_SIZE: usize = $bytes;
-
+macro_rules! numeric_encode_decode_def {
+    () => {
         pub struct Encoder(BufferState<BUF_SIZE>);
 
         impl diny::buffer::BufferEncode for Encoder {
@@ -17,22 +7,19 @@ macro_rules! numeric_def {
             type Format = ThisFormat;
 
             fn new(data: &Self::Data) -> Self {
-                Encoder(BufferState::with_contents(data.to_le_bytes()))
+                Encoder(BufferState::with_contents(to_le_bytes(*data)))
             }
         
-            fn start_encode_buffer<W>(_format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <<Self as BufferEncode>::Format as backend::Format>::Error>
+            fn start_encode_buffer<W>(_format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, Error>
             where
                 W: AsyncWrite + Unpin,
             {
                 let mut enc = Self::new(data);
-                match enc.0.start_write(writer, cx) {
-                    backend::PollEncodeStatus::Fini     => backend::StartEncodeStatus::Fini,
-                    backend::PollEncodeStatus::Pending  => backend::StartEncodeStatus::Pending(enc),
-                    backend::PollEncodeStatus::Error(e) => backend::StartEncodeStatus::Error(e),
-                }
+                enc.0.start_write(writer, cx)
+                .lift(enc)
             }
 
-            fn poll_encode_buffer<W>(&mut self, _format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
+            fn poll_encode_buffer<W>(&mut self, _format: &Self::Format, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
             where
                 W: AsyncWrite + Unpin,
             {
@@ -42,7 +29,7 @@ macro_rules! numeric_def {
 
         pub struct Decoder(BufferState<BUF_SIZE>);
 
-        impl diny::backend::Decode for Decoder {
+        impl backend::Decode for Decoder {
             type Data = Data;
             type Format = ThisFormat;
 
@@ -50,31 +37,55 @@ macro_rules! numeric_def {
                 Self(BufferState::init())
             }
         
-            fn start_decode<R>(_format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <<Self as backend::Decode>::Format as backend::Format>::Error>
+            fn start_decode<R>(_format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
-                let mut decode = Self::init();
-                match (&mut decode.0).start_read(reader, cx) {
-                    backend::PollDecodeStatus::Fini(())    => backend::StartDecodeStatus::Fini(Data::from_le_bytes(*decode.0.buffer())),
-                    backend::PollDecodeStatus::Pending    => backend::StartDecodeStatus::Pending(decode),
+                let mut dec = Self::init();
+                match (&mut dec.0).start_read(reader, cx) {
+                    backend::PollDecodeStatus::Fini(())   => from_le_bytes(*dec.0.buffer()).into(),
+                    backend::PollDecodeStatus::Pending    => backend::StartDecodeStatus::Pending(dec),
                     backend::PollDecodeStatus::Error(err) => backend::StartDecodeStatus::Error(err),
                 }
             }
 
-            fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
+            fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, Error>
             where
                 R: AsyncRead + AsyncBufRead + Unpin,
             {
                 match (&mut self.0).read_remaining(reader, cx) {
-                    backend::PollDecodeStatus::Fini(())   => backend::PollDecodeStatus::Fini(Data::from_le_bytes(*self.0.buffer())),
+                    backend::PollDecodeStatus::Fini(())   => from_le_bytes(*self.0.buffer()).into(),
                     backend::PollDecodeStatus::Pending    => backend::PollDecodeStatus::Pending,
                     backend::PollDecodeStatus::Error(err) => backend::PollDecodeStatus::Error(err),
-
                 }
             }
         }
+    };
+}
 
+macro_rules! numeric_def {
+    ($t:ty, $bytes:literal) => {
+        use core::task::Context;
+        use futures::{AsyncRead, AsyncBufRead, AsyncWrite};    
+        use diny::{backend, buffer::{buffer_state::BufferState}};
+        use $crate::Formatter as ThisFormat;
+
+        type Error = <ThisFormat as backend::Format>::Error;
+        type Data = $t;
+        const BUF_SIZE: usize = $bytes;
+
+        #[inline(always)]
+        fn to_le_bytes(v: Data) -> [u8; BUF_SIZE] {
+            v.to_le_bytes()
+        }
+        
+        #[inline(always)]
+        fn from_le_bytes(bytes: [u8; BUF_SIZE]) -> Data {
+            Data::from_le_bytes(bytes)
+        }
+        
+
+        numeric_encode_decode_def!();
         serialize_all_def!    (ThisFormat, Data, Encoder);
         deserialize_exact_def!(ThisFormat, Data, Decoder);        
     };
@@ -84,7 +95,7 @@ macro_rules! usize_wrapper_def {
     ($t: ty, $repr: ty, $m: path) => {
         use core::{convert::TryInto, task::Context};
         use futures::{AsyncRead, AsyncBufRead, AsyncWrite};        
-        use diny::backend::{self, Format};
+        use diny::{backend::{self, Format}, buffer};
         
         use crate::{
             Formatter as ThisFormat,
@@ -96,7 +107,7 @@ macro_rules! usize_wrapper_def {
         
         pub struct Encoder(Option<wrapper::Encoder>);
         
-        impl diny::buffer::BufferEncode for Encoder {
+        impl buffer::BufferEncode for Encoder {
             type Data = Data;
             type Format = ThisFormat;
         
