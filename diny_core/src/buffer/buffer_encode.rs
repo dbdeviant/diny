@@ -8,7 +8,7 @@ pub trait BufferEncode: Sized {
     type Format: FormatEncode;
     type Data;
 
-    fn new(data: &Self::Data) -> Self;
+    fn init_buffer(data: &Self::Data) -> Self;
 
     fn start_encode_buffer<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <<Self as BufferEncode>::Format as Format>::Error>
     where
@@ -26,7 +26,7 @@ impl<T> Encode for T where T: BufferEncode {
     type Data = T::Data;
 
     fn init(data: &Self::Data) -> Self {
-        Self::new(data)
+        Self::init_buffer(data)
     }
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <<Self as BufferEncode>::Format as Format>::Error>

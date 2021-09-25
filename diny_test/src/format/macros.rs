@@ -6,7 +6,7 @@ macro_rules! numeric_encode_decode_def {
             type Data = Data;
             type Format = ThisFormat;
 
-            fn new(data: &Self::Data) -> Self {
+            fn init_buffer(data: &Self::Data) -> Self {
                 Encoder(BufferState::with_contents(to_le_bytes(*data)))
             }
         
@@ -14,7 +14,7 @@ macro_rules! numeric_encode_decode_def {
             where
                 W: AsyncWrite + Unpin,
             {
-                let mut enc = Self::new(data);
+                let mut enc = Self::init_buffer(data);
                 enc.0.start_write(writer, cx)
                 .lift(enc)
             }
@@ -111,7 +111,7 @@ macro_rules! usize_wrapper_def {
             type Data = Data;
             type Format = ThisFormat;
         
-            fn new(data: &Self::Data) -> Self {
+            fn init_buffer(data: &Self::Data) -> Self {
                 Encoder(
                     TryInto::<$repr>::try_into(Into::<usize>::into(*data))
                     .map(|n| <wrapper::Encoder as diny::backend::Encode>::init(&n.into()))

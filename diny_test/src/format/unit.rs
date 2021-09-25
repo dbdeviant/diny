@@ -11,7 +11,7 @@ impl buffer::BufferEncode for Encoder {
     type Data = Data;
     type Format = ThisFormat;
 
-    fn new(_data: &Self::Data) -> Self {
+    fn init_buffer(_data: &Self::Data) -> Self {
         Encoder
     }
 
