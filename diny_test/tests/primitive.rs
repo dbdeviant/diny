@@ -56,6 +56,15 @@ fn can_serialize_u64() {
 }
 
 #[test]
+fn can_serialize_u128() {
+    const LEN: usize = 16;
+    test_serialize_exact::<u128, LEN>(& u128::MIN   );
+    test_serialize_exact::<u128, LEN>(&(u128::MIN+1));
+    test_serialize_exact::<u128, LEN>(&(u128::MAX-1));
+    test_serialize_exact::<u128, LEN>(& u128::MAX   );
+}
+
+#[test]
 fn can_serialize_i8() {
     const LEN: usize = 1;
     test_serialize_exact::<i8 , LEN>(& i8::MIN   );
@@ -101,4 +110,13 @@ fn can_serialize_i64() {
     test_serialize_exact::<i64, LEN>(&-1);
     test_serialize_exact::<i64, LEN>(&0);
     test_serialize_exact::<i64, LEN>(&1);
+}
+
+#[test]
+fn can_serialize_i128() {
+    const LEN: usize = 16;
+    test_serialize_exact::<i128, LEN>(& i128::MIN   );
+    test_serialize_exact::<i128, LEN>(&(i128::MIN+1));
+    test_serialize_exact::<i128, LEN>(&(i128::MAX-1));
+    test_serialize_exact::<i128, LEN>(& i128::MAX   );
 }
