@@ -122,6 +122,28 @@ fn can_serialize_i128() {
 }
 
 #[test]
+fn can_serialize_f32() {
+    const LEN: usize = 4;
+    test_serialize_exact::<f32, LEN>(&  f32::MIN   );
+    test_serialize_exact::<f32, LEN>(&  f32::MAX   );
+    test_serialize_exact::<f32, LEN>(&-1f32);
+    test_serialize_exact::<f32, LEN>(& 0f32);
+    test_serialize_exact::<f32, LEN>(& 1f32);
+    assert!(test_serialize_exact_no_cmp::<f32, LEN>(& f32::NAN).is_nan());
+}
+
+#[test]
+fn can_serialize_f64() {
+    const LEN: usize = 8;
+    test_serialize_exact::<f64, LEN>(&  f64::MIN   );
+    test_serialize_exact::<f64, LEN>(&  f64::MAX   );
+    test_serialize_exact::<f64, LEN>(&-1f64);
+    test_serialize_exact::<f64, LEN>(& 0f64);
+    test_serialize_exact::<f64, LEN>(& 1f64);
+    assert!(test_serialize_exact_no_cmp::<f64, LEN>(&  f64::NAN).is_nan());
+}
+
+#[test]
 fn can_serialize_char() {
     const LEN: usize = 4;
     test_serialize_exact::<char, LEN>(& ' ');

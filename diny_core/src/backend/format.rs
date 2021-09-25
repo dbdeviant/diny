@@ -35,6 +35,9 @@ pub trait FormatEncode: Format {
     type EncodeU64 : Encode<Data=u64 , Format=Self>;
     type EncodeU128: Encode<Data=u128, Format=Self>;
 
+    type EncodeF32 : Encode<Data=f32 , Format=Self>;
+    type EncodeF64 : Encode<Data=f64 , Format=Self>;
+
     type EncodeChar: Encode<Data=char, Format=Self>;
 
     type EncodeVariantIdx : Encode<Data=VariantIdx , Format=Self>;
@@ -58,6 +61,9 @@ pub trait FormatSerialize: FormatEncode {
     type SerializeU64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
     type SerializeU128<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
 
+    type SerializeF32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
+    type SerializeF64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
+
     type SerializeChar<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
 
     type SerializeVariantIdx <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + AsyncWrite + Unpin;
@@ -77,6 +83,9 @@ pub trait FormatSerialize: FormatEncode {
     fn serialize_u32 <'w, W>(&'w self, writer: &'w mut W, data: &u32 ) -> Self::SerializeU32 <'w, W> where W: AsyncWrite + Unpin;
     fn serialize_u64 <'w, W>(&'w self, writer: &'w mut W, data: &u64 ) -> Self::SerializeU64 <'w, W> where W: AsyncWrite + Unpin;
     fn serialize_u128<'w, W>(&'w self, writer: &'w mut W, data: &u128) -> Self::SerializeU128<'w, W> where W: AsyncWrite + Unpin;
+
+    fn serialize_f32 <'w, W>(&'w self, writer: &'w mut W, data: &f32 ) -> Self::SerializeF32 <'w, W> where W: AsyncWrite + Unpin;
+    fn serialize_f64 <'w, W>(&'w self, writer: &'w mut W, data: &f64 ) -> Self::SerializeF64 <'w, W> where W: AsyncWrite + Unpin;
 
     fn serialize_char<'w, W>(&'w self, writer: &'w mut W, data: &char) -> Self::SerializeChar<'w, W> where W: AsyncWrite + Unpin;
 
@@ -101,6 +110,9 @@ pub trait FormatDecode: Format {
     type DecodeU64 : Decode<Data=u64 , Format=Self>;
     type DecodeU128: Decode<Data=u128, Format=Self>;
 
+    type DecodeF32 : Decode<Data=f32 , Format=Self>;
+    type DecodeF64 : Decode<Data=f64 , Format=Self>;
+
     type DecodeChar: Decode<Data=char, Format=Self>;
 
     type DecodeVariantIdx : Decode<Data=VariantIdx , Format=Self>;
@@ -124,6 +136,9 @@ pub trait FormatDeserialize: FormatDecode {
     type DeserializeU64 <'r, R>: Future<Output=Result<u64 , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
     type DeserializeU128<'r, R>: Future<Output=Result<u128, Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
 
+    type DeserializeF32 <'r, R>: Future<Output=Result<f32 , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
+    type DeserializeF64 <'r, R>: Future<Output=Result<f64 , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
+
     type DeserializeChar<'r, R>: Future<Output=Result<char, Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
 
     type DeserializeVariantIdx <'r, R>: Future<Output=Result<VariantIdx , Self::Error>> + Unpin where R: 'r + AsyncRead + AsyncBufRead + Unpin;
@@ -143,6 +158,9 @@ pub trait FormatDeserialize: FormatDecode {
     fn deserialize_u32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU32 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
     fn deserialize_u64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU64 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
     fn deserialize_u128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU128<'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
+
+    fn deserialize_f32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF32 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
+    fn deserialize_f64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF64 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
 
     fn deserialize_char<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar<'r, R> where R: AsyncRead + AsyncBufRead + Unpin;
 

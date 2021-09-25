@@ -52,6 +52,9 @@ impl diny::backend::FormatEncode for Formatter {
     type EncodeU64  = format::u64 ::Encoder;
     type EncodeU128 = format::u128::Encoder;
 
+    type EncodeF32  = format::f32 ::Encoder;
+    type EncodeF64  = format::f64 ::Encoder;
+
     type EncodeChar = format::char::Encoder;
 
     type EncodeVariantIdx  = format::variant_idx ::Encoder;
@@ -75,6 +78,9 @@ impl diny::backend::FormatSerialize for Formatter
     type SerializeU64 <'w, W> where W: 'w + AsyncWrite + Unpin = format::u64 ::SerializeAll<'w, W>;
     type SerializeU128<'w, W> where W: 'w + AsyncWrite + Unpin = format::u128::SerializeAll<'w, W>;
 
+    type SerializeF32 <'w, W> where W: 'w + AsyncWrite + Unpin = format::f32 ::SerializeAll<'w, W>;
+    type SerializeF64 <'w, W> where W: 'w + AsyncWrite + Unpin = format::f64 ::SerializeAll<'w, W>;
+
     type SerializeChar<'w, W> where W: 'w + AsyncWrite + Unpin = format::char::SerializeAll<'w, W>;
 
     type SerializeVariantIdx <'w, W> where W: 'w + AsyncWrite + Unpin = format::variant_idx ::SerializeAll<'w, W>;
@@ -94,6 +100,9 @@ impl diny::backend::FormatSerialize for Formatter
     fn serialize_u32 <'w, W>(&'w self, writer: &'w mut W, data: &u32 ) -> Self::SerializeU32 <'w, W> where W: AsyncWrite + Unpin { format::u32 ::serialize(self, writer, data) }
     fn serialize_u64 <'w, W>(&'w self, writer: &'w mut W, data: &u64 ) -> Self::SerializeU64 <'w, W> where W: AsyncWrite + Unpin { format::u64 ::serialize(self, writer, data) }
     fn serialize_u128<'w, W>(&'w self, writer: &'w mut W, data: &u128) -> Self::SerializeU128<'w, W> where W: AsyncWrite + Unpin { format::u128::serialize(self, writer, data) }
+
+    fn serialize_f32 <'w, W>(&'w self, writer: &'w mut W, data: &f32 ) -> Self::SerializeF32 <'w, W> where W: AsyncWrite + Unpin { format::f32 ::serialize(self, writer, data) }
+    fn serialize_f64 <'w, W>(&'w self, writer: &'w mut W, data: &f64 ) -> Self::SerializeF64 <'w, W> where W: AsyncWrite + Unpin { format::f64 ::serialize(self, writer, data) }
 
     fn serialize_char<'w, W>(&'w self, writer: &'w mut W, data: &char) -> Self::SerializeChar<'w, W> where W: AsyncWrite + Unpin { format::char::serialize(self, writer, data) }
 
@@ -116,6 +125,9 @@ impl diny::backend::FormatDecode for Formatter {
     type DecodeU32  = format::u32 ::Decoder;
     type DecodeU64  = format::u64 ::Decoder;
     type DecodeU128 = format::u128::Decoder;
+
+    type DecodeF32  = format::f32 ::Decoder;
+    type DecodeF64  = format::f64 ::Decoder;
 
     type DecodeChar = format::char::Decoder;
 
@@ -140,6 +152,9 @@ impl diny::backend::FormatDeserialize for Formatter
     type DeserializeU64 <'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::u64 ::DeserializeExact<'r, R>;
     type DeserializeU128<'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::u128::DeserializeExact<'r, R>;
 
+    type DeserializeF32 <'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::f32 ::DeserializeExact<'r, R>;
+    type DeserializeF64 <'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::f64 ::DeserializeExact<'r, R>;
+
     type DeserializeChar<'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::char::DeserializeExact<'r, R>;
 
     type DeserializeVariantIdx <'r, R> where R: 'r + AsyncRead + AsyncBufRead + Unpin = format::variant_idx ::DeserializeExact<'r, R>;
@@ -159,6 +174,9 @@ impl diny::backend::FormatDeserialize for Formatter
     fn deserialize_u32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU32 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin { format::u32 ::deserialize(self, reader) }
     fn deserialize_u64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU64 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin { format::u64 ::deserialize(self, reader) }
     fn deserialize_u128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU128<'r, R> where R: AsyncRead + AsyncBufRead + Unpin { format::u128::deserialize(self, reader) }
+
+    fn deserialize_f32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF32 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin { format::f32 ::deserialize(self, reader) }
+    fn deserialize_f64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF64 <'r, R> where R: AsyncRead + AsyncBufRead + Unpin { format::f64 ::deserialize(self, reader) }
 
     fn deserialize_char<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar<'r, R> where R: AsyncRead + AsyncBufRead + Unpin { format::char::deserialize(self, reader) }
 

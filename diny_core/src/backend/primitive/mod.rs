@@ -16,4 +16,7 @@ mod macros;
 #[doc(hidden)] pub mod u64  { primitive_def!(u64 , serialize_u64 , EncodeU64 , SerializeU64 , deserialize_u64 , DecodeU64 , DeserializeU64 ); }
 #[doc(hidden)] pub mod u128 { primitive_def!(u128, serialize_u128, EncodeU128, SerializeU128, deserialize_u128, DecodeU128, DeserializeU128); }
 
+#[doc(hidden)] pub mod f32  { primitive_def!(f32 , serialize_f32 , EncodeF32 , SerializeF32 , deserialize_f32 , DecodeF32 , DeserializeF32 ); }
+#[doc(hidden)] pub mod f64  { primitive_def!(f64 , serialize_f64 , EncodeF64 , SerializeF64 , deserialize_f64 , DecodeF64 , DeserializeF64 ); }
+
 #[doc(hidden)] pub mod char { primitive_def!(char, serialize_char, EncodeChar, SerializeChar, deserialize_char, DecodeChar, DeserializeChar); }

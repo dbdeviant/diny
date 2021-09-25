@@ -27,6 +27,14 @@ where
 }
 
 #[allow(unused)]
+pub fn test_serialize_exact_no_cmp<T, const LEN: usize>(send: &T) -> T
+where
+    T: diny::AsyncSerialize + diny::AsyncDeserialize + PartialEq + core::fmt::Debug,
+{
+    serialize_exact::<T, LEN>(send)
+}
+
+#[allow(unused)]
 pub fn test_serialize_exact_with_error<T, const LEN: usize>(send: &T)
 where
     T: diny::AsyncSerialize + diny::AsyncDeserialize,

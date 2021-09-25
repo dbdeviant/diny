@@ -17,5 +17,8 @@ pub mod u32  { numeric_def!(u32 , 4 ); }
 pub mod u64  { numeric_def!(u64 , 8 ); }
 pub mod u128 { numeric_def!(u128, 16); }
 
+pub mod f32  { numeric_def!(f32 , 4 ); }
+pub mod f64  { numeric_def!(f64 , 8 ); }
+
 pub mod variant_idx  { usize_wrapper_def!(diny::backend::internal::VariantIdx , u32, format::u32); }
 pub mod sequence_len { usize_wrapper_def!(diny::backend::internal::SequenceLen, u64, format::u64); }
