@@ -56,11 +56,8 @@ where
     where
         W: io::AsyncWrite + Unpin,
     {
-        match cur.write_remaining(writer, data.as_bytes(), cx) {
-            backend::PollEncodeStatus::Fini     => backend::PollEncodeStatus::Fini,
-            backend::PollEncodeStatus::Pending  => backend::PollEncodeStatus::Pending,
-            backend::PollEncodeStatus::Error(e) => backend::PollEncodeStatus::Error(e.into()),
-        }
+        cur.write_remaining(writer, data.as_bytes(), cx)
+        .map_err(|e| e.into())
     }
 }
 
@@ -234,11 +231,7 @@ where
     {
         let mut data = PartialData::new();
         match DecodeCursor::after_init(format, reader, &mut data, cx) {
-            backend::StartDecodeStatus::Fini(())        =>
-                match data.into_data::<F>() {
-                    Ok(s)  => backend::StartDecodeStatus::Fini(s),
-                    Err(e) => backend::StartDecodeStatus::Error(e),
-                },
+            backend::StartDecodeStatus::Fini(())        => data.into_data::<F>().into(),
             backend::StartDecodeStatus::Pending(cursor) => backend::StartDecodeStatus::Pending(Self { state: Some(DecodeState { data, cursor }) }),
             backend::StartDecodeStatus::Error(e)        => backend::StartDecodeStatus::Error(e),
         }
@@ -264,11 +257,7 @@ where
                     decode_poll_fini!(
                         state.cursor,
                         DecodeCursor,
-                        match cur.fill_vec(reader, &mut state.data, cx) {
-                            backend::PollDecodeStatus::Fini(()) => backend::PollDecodeStatus::Fini(()),
-                            backend::PollDecodeStatus::Pending  => backend::PollDecodeStatus::Pending,
-                            backend::PollDecodeStatus::Error(e) => backend::PollDecodeStatus::Error(e.into())
-                        },
+                        cur.fill_vec(reader, &mut state.data, cx).map_err(|e| e.into()),
                         |()| ()
                     ),
                 DecodeCursor::Fini => return backend::PollDecodeStatus::Error(F::invalid_input_err()),
@@ -278,10 +267,7 @@ where
             // the DecodeCursor::Fini state as a result of this call.  That cursor state is
             // only reached once all array items have been created, and this next statement
             // consumes the outer state in order to produce the returned array.
-            .and_then(|()| match self.state.take().unwrap().data.into_data::<F>() {
-                Ok(s)  => backend::PollDecodeStatus::Fini(s),
-                Err(e) => backend::PollDecodeStatus::Error(e),
-            })
+            .and_then(|()| self.state.take().unwrap().data.into_data::<F>().into())
         } else {
             backend::PollDecodeStatus::Error(F::invalid_input_err())
         }

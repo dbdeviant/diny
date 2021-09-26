@@ -123,22 +123,19 @@ macro_rules! usize_wrapper_def {
             {
                 match TryInto::<$repr>::try_into(Into::<usize>::into(*data)) {
                     Ok(n) => {
-                        match <wrapper::Encoder as diny::backend::Encode>::start_encode(format, writer, &n.into(), cx) {
-                            backend::StartEncodeStatus::Fini         => backend::StartEncodeStatus::Fini,
-                            backend::StartEncodeStatus::Pending(enc) => backend::StartEncodeStatus::Pending(Self(Some(enc))),
-                            backend::StartEncodeStatus::Error(e)     => backend::StartEncodeStatus::Error(e),
-                        }
+                        <wrapper::Encoder as diny::backend::Encode>::start_encode(format, writer, &n.into(), cx)
+                        .map_pending(|enc| Self(Some(enc)))
                     }
                     Err(_) => backend::StartEncodeStatus::Error(ThisFormat::invalid_data_err()),
                 }
             }
 
-            fn poll_encode_buffer<W>(&mut self, format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
+            fn poll_encode_buffer<W>(&mut self, format: &Self::Format, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
             where
                 W: io::AsyncWrite + Unpin,
             {
                 match &mut self.0 {
-                    None      => backend::PollEncodeStatus::Error(ThisFormat::invalid_data_err()),
+                    None      => backend::PollEncodeStatus::Error(Self::Format::invalid_data_err()),
                     Some(enc) => enc.poll_encode_buffer(format, writer, cx),
                 }
             }
@@ -158,28 +155,27 @@ macro_rules! usize_wrapper_def {
             where
                 R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
-                match wrapper::Decoder::start_decode(format, reader, cx) {
-                    diny::backend::StartDecodeStatus::Fini(n) => match TryInto::<usize>::try_into(n) {
-                        Ok (n) => diny::backend::StartDecodeStatus::Fini(n.into()),
-                        Err(_) => diny::backend::StartDecodeStatus::Error(ThisFormat::invalid_data_err()),
-                    },
-                    diny::backend::StartDecodeStatus::Pending(dec) => diny::backend::StartDecodeStatus::Pending(Decoder(dec)),
-                    diny::backend::StartDecodeStatus::Error(e) => diny::backend::StartDecodeStatus::Error(e),
-                }
+                wrapper::Decoder::start_decode(format, reader, cx)
+                .and_then(
+                    |n| TryInto::<usize>::try_into(n)
+                        .map(|n| n.into())
+                        .map_err(|_| Self::Format::invalid_data_err())
+                        .into(),
+                    Decoder,
+                )
             }
 
             fn poll_decode<R>(&mut self, format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
             where
                 R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
-                match self.0.poll_decode(format, reader, cx) {
-                    diny::backend::PollDecodeStatus::Fini(n) => match TryInto::<usize>::try_into(n) {
-                        Ok (n) => diny::backend::PollDecodeStatus::Fini(n.into()),
-                        Err(_) => diny::backend::PollDecodeStatus::Error(ThisFormat::invalid_data_err()),
-                    },
-                    diny::backend::PollDecodeStatus::Pending => diny::backend::PollDecodeStatus::Pending,
-                    diny::backend::PollDecodeStatus::Error(e) => diny::backend::PollDecodeStatus::Error(e),
-                }
+                self.0.poll_decode(format, reader, cx)
+                .and_then(
+                    |n| TryInto::<usize>::try_into(n)
+                        .map(|n| n.into())
+                        .map_err(|_| Self::Format::invalid_data_err())
+                        .into()                    
+                )
             }
         }
         

@@ -23,7 +23,11 @@ pub enum StartDecodeStatus<Dta, Dec, Err> {
 impl<Dta, Dec, Err> StartDecodeStatus<Dta, Dec, Err> {
     /// Convenience method for functorially mapping either variant to a new status.
     #[inline(always)]
-    pub fn bimap<Fdta, Gdec, F: FnOnce(Dta) -> Fdta, G: FnOnce(Dec) -> Gdec>(self, f: F, g: G) -> StartDecodeStatus<Fdta, Gdec, Err> {
+    pub fn bimap<Fdta, Gdec, F, G>(self, f: F, g: G) -> StartDecodeStatus<Fdta, Gdec, Err>
+    where
+        F: FnOnce(Dta) -> Fdta,
+        G: FnOnce(Dec) -> Gdec,
+     {
         match self {
             Self::Fini   (dta) => StartDecodeStatus::Fini   (f(dta)),
             Self::Pending(dec) => StartDecodeStatus::Pending(g(dec)),
@@ -79,9 +83,9 @@ pub enum PollDecodeStatus<Dta, Err> {
 impl<Dta, Err> PollDecodeStatus<Dta, Err> {
     /// Maps decoded data to the data structure by applying `f`
     #[inline(always)]
-    pub fn map<F, Dta2>(self, f: F) -> PollDecodeStatus<Dta2, Err>
+    pub fn map<F, D>(self, f: F) -> PollDecodeStatus<D, Err>
     where
-        F: FnOnce(Dta) -> Dta2
+        F: FnOnce(Dta) -> D
     {
         match self {
             PollDecodeStatus::Fini(d)  => PollDecodeStatus::Fini(f(d)),
@@ -90,11 +94,24 @@ impl<Dta, Err> PollDecodeStatus<Dta, Err> {
         }
     }
 
+    /// Maps any returned error to the error returned by applying `f`
+    #[inline(always)]
+    pub fn map_err<F, E>(self, f: F) -> PollDecodeStatus<Dta, E>
+    where
+        F: FnOnce(Err) -> E
+    {
+        match self {
+            PollDecodeStatus::Fini(d)  => PollDecodeStatus::Fini(d),
+            PollDecodeStatus::Pending  => PollDecodeStatus::Pending,
+            PollDecodeStatus::Error(e) => PollDecodeStatus::Error(f(e)),
+        }
+    }
+
     /// Binds the decoded data to the data structure mapped by `f`
     #[inline(always)]
-    pub fn and_then<F, Dta2>(self, f: F) -> PollDecodeStatus<Dta2, Err>
+    pub fn and_then<F, D>(self, f: F) -> PollDecodeStatus<D, Err>
     where
-        F: FnOnce(Dta) -> PollDecodeStatus<Dta2, Err>
+        F: FnOnce(Dta) -> PollDecodeStatus<D, Err>
     {
         match self {
             PollDecodeStatus::Fini(d)  => f(d),
@@ -158,12 +175,9 @@ pub trait Decode: Sized {
     where
         R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
-        let mut decode = Self::init();
-        match decode.poll_decode(format, reader, cx) {
-            PollDecodeStatus::Fini(d)    => StartDecodeStatus::Fini(d),
-            PollDecodeStatus::Pending    => StartDecodeStatus::Pending(decode),
-            PollDecodeStatus::Error(err) => StartDecodeStatus::Error(err),
-        }
+        let mut dec = Self::init();
+        dec.poll_decode(format, reader, cx)
+        .lift(dec)
     }
 
     /// Continue a [pending](Poll) [decode](FormatDecode) operation.

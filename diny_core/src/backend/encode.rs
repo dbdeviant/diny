@@ -11,9 +11,9 @@ pub enum StartEncodeStatus<Enc, Err> {
 
 impl<Enc, Err> StartEncodeStatus<Enc, Err> {
     #[inline(always)]
-    pub fn map_pending<F, Enc2>(self, f: F) -> StartEncodeStatus<Enc2, Err>
+    pub fn map_pending<F, E>(self, f: F) -> StartEncodeStatus<E, Err>
     where
-        F: FnOnce(Enc) -> Enc2,
+        F: FnOnce(Enc) -> E,
     {
         match self {
             Self::Fini         => StartEncodeStatus::Fini,
@@ -36,6 +36,18 @@ impl<Err> PollEncodeStatus<Err> {
             PollEncodeStatus::Fini       => StartEncodeStatus::Fini,
             PollEncodeStatus::Pending    => StartEncodeStatus::Pending(enc),
             PollEncodeStatus::Error(err) => StartEncodeStatus::Error(err),
+        }
+    }
+
+    #[inline(always)]
+    pub fn map_err<F, E>(self, f: F) -> PollEncodeStatus<E>
+    where
+        F: FnOnce(Err) -> E,
+    {
+        match self {
+            PollEncodeStatus::Fini => PollEncodeStatus::Fini,
+            PollEncodeStatus::Pending => PollEncodeStatus::Pending,
+            PollEncodeStatus::Error(err) => PollEncodeStatus::Error(f(err))
         }
     }
 }
@@ -63,7 +75,11 @@ pub trait Encode: Sized {
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> StartEncodeStatus<Self, <<Self as Encode>::Format as Format>::Error>
     where
         W: io::AsyncWrite + Unpin,
-    ;
+    {
+        let mut enc = Self::init(data);
+        enc.poll_encode(format, writer, data, cx)
+        .lift(enc)
+    }
 
     /// Continue a [pending](Poll) [encode](FormatEncode) operation.
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> PollEncodeStatus<<<Self as Encode>::Format as Format>::Error>
