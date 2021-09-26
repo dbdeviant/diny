@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, task::Context};
-use futures::{AsyncRead, AsyncBufRead};
 use crate::backend::{self, Decode, Encode, FormatDecode, FormatEncode};
+use crate::io;
 
 
 pub enum Encoder<F, Dta>
@@ -34,7 +34,7 @@ where
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, _data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
      {
         F::EncodeUnit::start_encode(format, writer, &(), cx)
         .map_pending(Self::V0)
@@ -42,7 +42,7 @@ where
 
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         match self {
             Self::Init(_, _) => encode_chain!(*self, Self::start_encode(format, writer, data, cx)),
@@ -75,7 +75,7 @@ where
 
     fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         F::DecodeUnit::start_decode(format, reader, cx)
         .and_then(
@@ -86,7 +86,7 @@ where
 
     fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         match self {
             Self::Init(_) => decode_chain!(*self, Self, Self::start_decode(format, reader, cx)),

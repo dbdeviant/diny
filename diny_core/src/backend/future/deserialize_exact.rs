@@ -1,6 +1,7 @@
 use core::{pin::Pin, task::{Context, Poll}};
-use futures::{AsyncRead, AsyncBufRead};
 use crate::backend::{self, Decode, FormatDecode, FormatDeserialize};
+use crate::io;
+
 
 /// Implements a [deserialization future](FormatDeserialize) for any
 /// [decoder](Decode).
@@ -38,7 +39,7 @@ where
 impl<'r, F, R, Dta, Dec> core::future::Future for DeserializeExact<'r, F, R, Dta, Dec>
 where
     F: FormatDeserialize,
-    R: AsyncRead + AsyncBufRead + Unpin,
+    R: io::AsyncRead + io::AsyncBufRead + Unpin,
     Dec: Decode<Format=F, Data=Dta>,
 {
     type Output = Result<Dta, F::Error>;

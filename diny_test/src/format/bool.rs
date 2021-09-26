@@ -1,6 +1,5 @@
 use core::task::Context;
-use futures::{AsyncRead, AsyncBufRead, AsyncWrite};    
-use diny::{backend, buffer::buffer_state::BufferState};
+use diny::{backend, buffer::buffer_state::BufferState, io};
 use crate::Formatter as ThisFormat;
 
 type Error = <ThisFormat as backend::Format>::Error;
@@ -19,7 +18,7 @@ fn to_le_bytes(v: Data) -> [u8; BUF_SIZE] {
 }
 
 #[inline(always)]
-fn from_le_bytes(bytes: [u8; BUF_SIZE]) -> futures::io::Result<Data> {
+fn from_le_bytes(bytes: [u8; BUF_SIZE]) -> io::Result<Data> {
     match bytes[0] {
         TRUE  => Ok(true),
         FALSE => Ok(false),

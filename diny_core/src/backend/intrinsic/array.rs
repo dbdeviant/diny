@@ -1,6 +1,6 @@
 use core::task::Context;
-use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
 use crate::backend::{self, Encode as _, Decode as _};
+use crate::io;
 
 
 type Data<T, const L: usize> = [T; L];
@@ -22,14 +22,14 @@ where
 {
     fn after_init<W>(format: &F, writer: &mut W, data: &Data<T, L>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         Self::fields_from(format, writer, 0, data, cx)
     }
 
     fn fields_from<W>(format: &F, writer: &mut W, idx: usize, data: &Data<T, L>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         for (i, d) in data.iter().enumerate().skip(idx) {
             match <T as backend::Encodable>::Encoder::<F>::start_encode(format, writer, d, cx) {
@@ -57,14 +57,14 @@ where
 
     fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         Self::after_init(format, writer, data, cx)
     }
 
     fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         match self {
             Self::Init          => encode_chain!(*self, Self::start_encode(format, writer, data, cx)),
@@ -90,13 +90,13 @@ where
     where
         Self: 'w,
         F: 'w + backend::FormatSerialize,
-        W: 'w + AsyncWrite + Unpin,
+        W: 'w + io::AsyncWrite + Unpin,
     = backend::SerializeAll<'w, F, W, Self, Self::Encoder<F>>;
 
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
         F: backend::FormatSerialize,
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
 
     {
         backend::SerializeAll::new(format, writer, self, <Self::Encoder::<F> as backend::Encode>::init(self))
@@ -169,14 +169,14 @@ where
 {
     fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T, L>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         Self::fields_from(format, reader, 0, data, cx)
     }
 
     fn fields_from<R>(format: &F, reader: &mut R, idx: usize, data: &mut PartialData<T, L>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         for i in idx..L {
             match <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx) {
@@ -212,7 +212,7 @@ where
 
     fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         let mut data = PartialData::new();
         match DecodeCursor::after_init(format, reader, &mut data, cx) {
@@ -224,7 +224,7 @@ where
 
     fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         if let Some(state) = &mut self.state {
             match &mut state.cursor {
@@ -267,13 +267,13 @@ where
     type Future<'r, F, R>
     where
         F: 'r + backend::FormatDeserialize,
-        R: 'r + AsyncRead + AsyncBufRead + Unpin,
+        R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
     = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
 
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
         F: backend::FormatDeserialize,
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())
     }

@@ -1,7 +1,7 @@
 use core::{marker::PhantomData, pin::Pin, task::{Context, Poll}};
-use futures::AsyncWrite;
 use crate::backend::{self, FormatEncode, FormatSerialize};
 use crate::buffer::BufferEncode;
+use crate::io;
 
 /// A convenience structure that can serialize any implemenation of [BufferEncode].
 pub struct BufferEncoder<'w, F, W, Dta, Enc>
@@ -40,7 +40,7 @@ where
 impl<'w, F, W, Dta, Enc> core::future::Future for BufferEncoder<'w, F, W, Dta, Enc>
 where
     F: FormatSerialize,
-    W: AsyncWrite + Unpin,
+    W: io::AsyncWrite + Unpin,
     Enc: BufferEncode<Format=F, Data=Dta>,
 {
     type Output = Result<(), F::Error>;

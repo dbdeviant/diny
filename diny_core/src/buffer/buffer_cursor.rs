@@ -4,8 +4,9 @@ use core::{cmp::min, pin::Pin, task::{Context, Poll}};
 use alloc::vec::Vec;
 
 #[allow(unused)]
-use futures::{AsyncRead, AsyncBufRead, AsyncWrite, io::Result, ready};
-use crate::backend;
+use crate::{backend, io};
+use io::{AsyncWrite as _, AsyncRead as _, AsyncBufRead as _};
+
 
 /// Retains the current index state into a serialization buffer.
 ///
@@ -71,9 +72,9 @@ impl BufferCursor {
         self.offset += min(n, self.remaining());
     }
 
-    pub fn start_write<W>(&mut self, mut writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> backend::PollEncodeStatus<std::io::Error>
+    pub fn start_write<W>(&mut self, mut writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> backend::PollEncodeStatus<io::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
         while self.is_pending() {
@@ -82,7 +83,7 @@ impl BufferCursor {
                     Ok(n) => {
                         if n == 0 {
                             self.mark_as_error();
-                            return backend::PollEncodeStatus::Error(futures::io::ErrorKind::WriteZero.into());
+                            return backend::PollEncodeStatus::Error(io::error::write_zero());
                         } else {
                             self.advance(n);
                         }
@@ -107,9 +108,9 @@ impl BufferCursor {
     /// next, despite progress being made.  The expectation is that the caller
     /// does not need to retain any information about the progress of the write,
     /// and simply needs to pass in the same references for each call.
-    pub fn write_remaining<W>(&mut self, writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> backend::PollEncodeStatus<std::io::Error>
+    pub fn write_remaining<W>(&mut self, writer: &mut W, data: &[u8], cx: &mut Context<'_>) -> backend::PollEncodeStatus<io::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
         if self.len > data.len() {
@@ -117,15 +118,15 @@ impl BufferCursor {
         }
 
         if self.is_error() {
-            backend::PollEncodeStatus::Error(futures::io::ErrorKind::InvalidInput.into())
+            backend::PollEncodeStatus::Error(io::error::invalid_input())
         } else {
             self.start_write(writer, data, cx)
         }
     }
 
-    pub fn start_read<R>(&mut self, mut reader: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
+    pub fn start_read<R>(&mut self, mut reader: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>
     where
-        R: AsyncRead + Unpin,
+        R: io::AsyncRead + Unpin,
     {
         debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
         loop {
@@ -134,7 +135,7 @@ impl BufferCursor {
                     Ok(n) => {
                         if n == 0 {
                             self.mark_as_error();
-                            return backend::PollDecodeStatus::Error(futures::io::ErrorKind::UnexpectedEof.into());
+                            return backend::PollDecodeStatus::Error(io::error::unexpected_eof());
                         } else {
                             self.advance(n);
                             if !self.is_pending() {
@@ -160,9 +161,9 @@ impl BufferCursor {
     /// next, despite progress being made.  The expectation is that the caller
     /// does not need to retain any information about the progress of the read,
     /// and simply needs to pass in the same references for each call.
-    pub fn read_remaining<R>(&mut self, reader: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
+    pub fn read_remaining<R>(&mut self, reader: &mut R, data: &mut [u8], cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>
     where
-        R: AsyncRead + Unpin,
+        R: io::AsyncRead + Unpin,
     {
         debug_assert!(!self.is_error() && self.is_pending() && self.len <= data.len());
         if self.len > data.len() {
@@ -170,7 +171,7 @@ impl BufferCursor {
         }
 
         if self.is_error() {
-            backend::PollDecodeStatus::Error(futures::io::ErrorKind::InvalidInput.into())
+            backend::PollDecodeStatus::Error(io::error::invalid_input())
         } else {
             self.start_read(reader, data, cx)
         }
@@ -180,14 +181,14 @@ impl BufferCursor {
     /// of the [AsyncBufRead] trait to minimize the number of copies required to transfer
     /// the bytes into a pre-allocated [Vec].
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn fill_vec<R>(&mut self, mut reader: &mut R, data: &mut Vec<u8>, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), std::io::Error>
+    pub fn fill_vec<R>(&mut self, mut reader: &mut R, data: &mut Vec<u8>, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         debug_assert!(!self.is_error() && self.is_pending());
 
         if self.is_error() {
-            return backend::PollDecodeStatus::Error(futures::io::ErrorKind::InvalidInput.into());            
+            return backend::PollDecodeStatus::Error(io::error::invalid_input());            
         }
 
         while self.is_pending() {
@@ -196,7 +197,7 @@ impl BufferCursor {
                     Ok(buf) => {
                         if buf.is_empty() {
                             self.mark_as_error();
-                            return backend::PollDecodeStatus::Error(futures::io::ErrorKind::UnexpectedEof.into());
+                            return backend::PollDecodeStatus::Error(io::error::unexpected_eof());
                         } else {
                             let n = min(buf.len(), self.remaining());
                             data.extend_from_slice(&buf[..n]);

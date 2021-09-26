@@ -1,7 +1,6 @@
 use core::marker::PhantomData;
 use core::task::Context;
-use futures::{AsyncRead, AsyncBufRead};
-use crate::{backend, AsyncSerialize};
+use crate::{backend, AsyncSerialize, io};
 
 type Data<T> = PhantomData<T>;
 
@@ -30,7 +29,7 @@ where
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, _data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         <() as backend::Encodable>::Encoder::<F>::start_encode(format, writer, &(), cx)
         .map_pending(|s| Self(s, PhantomData))
@@ -38,7 +37,7 @@ where
 
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, _data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         self.0.poll_encode(format, writer, &(), cx)
     }
@@ -65,7 +64,7 @@ where
     fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>)
         -> backend::StartDecodeStatus<Self::Data, Self, <<Self as backend::Decode>::Format as backend::Format>::Error>
     where
-        R: futures::AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         <() as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
         .bimap(
@@ -77,7 +76,7 @@ where
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) 
         -> backend::PollDecodeStatus<Self::Data, <<Self as backend::Decode>::Format as backend::Format>::Error>
     where
-        R: futures::AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         self.0.poll_decode(format, reader, cx)
         .map(|()| PhantomData)

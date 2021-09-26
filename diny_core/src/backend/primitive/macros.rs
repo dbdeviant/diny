@@ -1,23 +1,23 @@
 macro_rules! serialize {
     ($t: ty, $fun: ident, $enc: ident, $fut: ident) => {
-        impl $crate::backend::Encodable for $t {
+        impl crate::backend::Encodable for $t {
             type Encoder<F>
             where
-                F: $crate::backend::FormatEncode,
+                F: crate::backend::FormatEncode,
             = F::$enc;
         }
 
-        impl $crate::AsyncSerialize for $t {
+        impl crate::AsyncSerialize for $t {
             type Future<'w, F, W>
             where
-                F: 'w + $crate::backend::FormatSerialize,
-                W: 'w + ::futures::AsyncWrite + Unpin,
+                F: 'w + crate::backend::FormatSerialize,
+                W: 'w + crate::io::AsyncWrite + Unpin,
             = F::$fut<'w, W>;
         
             fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
             where
-                F: $crate::backend::FormatSerialize,
-                W: ::futures::AsyncWrite + Unpin,
+                F: crate::backend::FormatSerialize,
+                W: crate::io::AsyncWrite + Unpin,
             {
                 F::$fun(format, writer, self)
             }
@@ -27,26 +27,26 @@ macro_rules! serialize {
 
 macro_rules! deserialize {
     ($t: ty, $fun: ident, $dec: ident, $fut: ident) => {
-        impl $crate::backend::Decodable for $t
+        impl crate::backend::Decodable for $t
         {
             type Decoder<F>
             where
-                F: $crate::backend::FormatDecode,
+                F: crate::backend::FormatDecode,
             = F::$dec;
         }
 
-        impl $crate::AsyncDeserialize for $t
+        impl crate::AsyncDeserialize for $t
         {
             type Future<'r, F, R>
             where
-                F: 'r + $crate::backend::FormatDeserialize,
-                R: 'r + ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
+                F: 'r + crate::backend::FormatDeserialize,
+                R: 'r + crate::io::AsyncRead + crate::io::AsyncBufRead + Unpin,
             = F::$fut<'r, R>;
 
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
-                F: $crate::backend::FormatDeserialize,
-                R: ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
+                F: crate::backend::FormatDeserialize,
+                R: crate::io::AsyncRead + crate::io::AsyncBufRead + Unpin,
             {
                 F::$fun(format, reader)
             }

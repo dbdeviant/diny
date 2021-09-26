@@ -1,6 +1,6 @@
 use core::task::Context;
-use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
 use crate::backend::{self, Encode as _, Decode as _};
+use crate::io;
 use backend::internal::VariantIdx;
 
 
@@ -32,7 +32,7 @@ where
 
     fn after_init<W>(format: &F, writer: &mut W, data: &Data<T>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         let index = Self::variant_index(data);
         match <VariantIdx as backend::Encodable>::Encoder::<F>::start_encode(format, writer, &index, cx) {
@@ -44,7 +44,7 @@ where
 
     fn after_index<W>(format: &F, writer: &mut W, data: &Data<T>, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         match data {
             Data::None    => Self::none(format, writer, &(), cx),
@@ -54,7 +54,7 @@ where
 
     fn none<W>(format: &F, writer: &mut W, data: &(), cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         <() as backend::Encodable>::Encoder::<F>::start_encode(format, writer, data, cx)
         .map_pending(Self::V0)
@@ -62,7 +62,7 @@ where
 
     fn some<W>(format: &F, writer: &mut W, data: &T, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         <T as backend::Encodable>::Encoder::<F>::start_encode(format, writer, data, cx)
         .map_pending(Self::V1)
@@ -85,14 +85,14 @@ where
 
     fn start_encode<W>(format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         Self::after_init(format, writer, data, cx)
     }
 
     fn poll_encode<W>(&mut self, format: &F, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         match self {
             Self::Init            => encode_chain!(*self, Self::after_init(format, writer, data, cx)),
@@ -127,13 +127,13 @@ where
     where
         Self: 'w,
         F: 'w + backend::FormatSerialize,
-        W: 'w + AsyncWrite + Unpin,
+        W: 'w + io::AsyncWrite + Unpin,
     = backend::SerializeAll<'w, F, W, Self, Self::Encoder<F>>;
 
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
         F: backend::FormatSerialize,
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
 
     {
         backend::SerializeAll::new(format, writer, self, <Self::Encoder::<F> as backend::Encode>::init(self))
@@ -160,7 +160,7 @@ where
 {
     fn after_init<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<T>, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         <VariantIdx as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
         .and_then(
@@ -171,7 +171,7 @@ where
 
     fn after_index<R>(index: VariantIdx, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<T>, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         match *index {
             0 => Self::none(format, reader, cx),
@@ -182,7 +182,7 @@ where
 
     fn none<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<T>, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         <() as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
         .and_then(
@@ -193,7 +193,7 @@ where
 
     fn some<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Data<T>, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
         .and_then(
@@ -217,14 +217,14 @@ where
 
     fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         Self::after_init(format, reader, cx)
     }
 
     fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         match self {
             Self::Init       => decode_chain!(*self, Self, Self::after_init(format, reader, cx)),
@@ -250,13 +250,13 @@ where
     type Future<'r, F, R>
     where
         F: 'r + backend::FormatDeserialize,
-        R: 'r + AsyncRead + AsyncBufRead + Unpin,
+        R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
     = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
 
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
         F: backend::FormatDeserialize,
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())
     }

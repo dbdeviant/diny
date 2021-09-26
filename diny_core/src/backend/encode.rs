@@ -1,6 +1,6 @@
 use core::task::Context;
-use futures::AsyncWrite;
 use crate::backend::{Format, FormatEncode};
+use crate::io;
 
 
 pub enum StartEncodeStatus<Enc, Err> {
@@ -62,13 +62,13 @@ pub trait Encode: Sized {
     /// `init` followed by `poll_encode`
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> StartEncodeStatus<Self, <<Self as Encode>::Format as Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     ;
 
     /// Continue a [pending](Poll) [encode](FormatEncode) operation.
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> PollEncodeStatus<<<Self as Encode>::Format as Format>::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     ;
 }
 

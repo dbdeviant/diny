@@ -1,7 +1,6 @@
 use core::marker::PhantomData;
 use core::task::Context;
-use futures::{AsyncRead, AsyncBufRead};
-use crate::{backend, AsyncSerialize};
+use crate::{backend, AsyncSerialize, io};
 
 type Data<T> = ::std::cell::RefCell<T>;
 
@@ -37,7 +36,7 @@ where
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         match &data.try_borrow() {
             Ok(ref d) => 
@@ -49,7 +48,7 @@ where
 
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         match &data.try_borrow() {
             Ok(ref d) => match &mut self.0 {

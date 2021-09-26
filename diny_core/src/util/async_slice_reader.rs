@@ -1,5 +1,5 @@
 use core::{cmp::min, pin::Pin, task::{Context, Poll}};
-use futures::{AsyncBufRead, AsyncRead, io::Result};
+use crate::io;
 
 /// Reads asynchronously from a slice of bytes, without
 /// attempting to acquire any more data if a read is attempted
@@ -57,14 +57,14 @@ impl<'b> AsyncSliceReader<'b> {
     }
 }
 
-impl AsyncRead for AsyncSliceReader<'_> {
-    fn poll_read(mut self: Pin<&mut Self>, _cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<Result<usize>> {
+impl io::AsyncRead for AsyncSliceReader<'_> {
+    fn poll_read(mut self: Pin<&mut Self>, _cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<io::Result<usize>> {
         Poll::Ready(Ok(self.read_into(buf)))
     }
 }
 
-impl AsyncBufRead for AsyncSliceReader<'_>{
-    fn poll_fill_buf(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<&[u8]>> {
+impl io::AsyncBufRead for AsyncSliceReader<'_>{
+    fn poll_fill_buf(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<&[u8]>> {
         Poll::Ready(Ok(&self.buf[self.cur..]))
     }
 

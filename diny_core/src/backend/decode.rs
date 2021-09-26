@@ -1,6 +1,7 @@
 use core::{task::Context};
-use futures::{AsyncRead, AsyncBufRead};
 use crate::backend::{Format, FormatDecode};
+use crate::io;
+
 
 /// Contains the resultant state of a [decode](Decode) opertation.
 ///
@@ -155,7 +156,7 @@ pub trait Decode: Sized {
     /// `init` followed by `poll_decode`
     fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> StartDecodeStatus<Self::Data, Self, <<Self as Decode>::Format as Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     {
         let mut decode = Self::init();
         match decode.poll_decode(format, reader, cx) {
@@ -168,6 +169,6 @@ pub trait Decode: Sized {
     /// Continue a [pending](Poll) [decode](FormatDecode) operation.
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> PollDecodeStatus<Self::Data, <<Self as Decode>::Format as Format>::Error>
     where
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     ;
 }

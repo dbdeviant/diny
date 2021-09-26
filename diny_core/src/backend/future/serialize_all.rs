@@ -1,6 +1,7 @@
 use core::task::{Context, Poll};
-use futures::AsyncWrite;
 use crate::backend::{self, Encode, FormatEncode, FormatSerialize};
+use crate::io;
+
 
 /// Implements a [serialization future](FormatSerialize) for any
 /// [encoder](Encode).
@@ -40,7 +41,7 @@ where
 impl<'w, F, W, Dta, Enc> core::future::Future for SerializeAll<'w, F, W, Dta, Enc>
 where
     F: FormatSerialize,
-    W: AsyncWrite + Unpin,
+    W: io::AsyncWrite + Unpin,
     Enc: Encode<Format=F, Data=Dta>,
 {
     type Output = Result<(), F::Error>;

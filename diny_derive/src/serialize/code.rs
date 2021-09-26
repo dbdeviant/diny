@@ -47,7 +47,7 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
             quote! {
                 fn #this_method<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     match <<#type_ref as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &data.#field_name, cx) {
                         ::diny::backend::StartEncodeStatus::Fini         => #next,
@@ -105,14 +105,14 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
 
                 fn start_encode<__W>(format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     Self::after_init(format, writer, data, cx)
                 }
         
                 fn poll_encode<__W>(&mut self, format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollEncodeStatus<<__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     match self {
                         Self::Init => #init_transition,
@@ -159,13 +159,13 @@ fn gen_struct_serialize(type_name: &TokenStream, fs: &data::Fields) -> TokenStre
             type Future<'w, __F, __W>
             where
                 __F: 'w + ::diny::backend::FormatSerialize,
-                __W: 'w + ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                __W: 'w + ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 = ::diny::backend::SerializeAll<'w, __F, __W, Self, Self::Encoder<__F>>;
     
             fn serialize<'w, __F, __W>(&'w self, format: &'w __F, writer: &'w mut __W) -> Self::Future<'w, __F, __W>
             where
                 __F: ::diny::backend::FormatSerialize,
-                __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
             {
                 ::diny::backend::SerializeAll::new(format, writer, self, #encode_init)
             }
@@ -235,7 +235,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             quote! {
                 fn #this_method<__R>(format: &__F, reader: &mut __R, data: &mut __PartialData, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<(), Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     <<#type_ref as ::diny::backend::Decodable>::Decoder::<__F> as ::diny::backend::Decode>::start_decode(format, reader, cx)
                     .and_then(
@@ -369,7 +369,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
         
                 fn start_decode<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<Self::Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     let mut data = __PartialData::new();
                     match __DecodeCursor::after_init(format, reader, &mut data, cx) {
@@ -386,7 +386,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
 
                 fn poll_decode<__R>(&mut self, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollDecodeStatus<Self::Data, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     if let Some(state) = &mut self.state {
                         match &mut state.cursor {
@@ -443,13 +443,13 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             type Future<'r, __F, __R>
             where
                 __F: 'r + ::diny::backend::FormatDeserialize,
-                __R: 'r + ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                __R: 'r + ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
             = ::diny::backend::DeserializeExact<'r, __F, __R, Self, Self::Decoder::<__F>>;
     
             fn deserialize<'r, __F, __R>(format: &'r __F, reader: &'r mut __R) -> Self::Future<'r, __F, __R>
             where
                 __F: ::diny::backend::FormatDeserialize,
-                __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
             {
                 ::diny::backend::DeserializeExact::new(format, reader, #decode_init)
             }
@@ -497,7 +497,7 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
             quote! {
                 fn #this_method<__W>(format: &__F, writer: &mut __W, data: &#type_ref, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     match <<#type_ref as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &data, cx) {
                         ::diny::backend::StartEncodeStatus::Fini         => ::diny::backend::StartEncodeStatus::Fini,
@@ -559,7 +559,7 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
         
                 fn after_init<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     let index = Self::variant_index(data);
                     match <<::diny::backend::internal::VariantIdx as ::diny::backend::Encodable>::Encoder::<__F> as ::diny::backend::Encode>::start_encode(format, writer, &index, cx) {
@@ -571,7 +571,7 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
                 
                 fn after_index<__W>(format: &__F, writer: &mut __W, data: &__Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     match data {
                         #(#dispatch,)*
@@ -594,14 +594,14 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
 
                 fn start_encode<__W>(format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartEncodeStatus<Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     Self::after_init(format, writer, data, cx)
                 }
         
                 fn poll_encode<__W>(&mut self, format: &__F, writer: &mut __W, data: &Self::Data, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollEncodeStatus<<__F as ::diny::backend::Format>::Error>
                 where
-                    __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                    __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 {
                     // Contract: 'data' must not be modified between calls
                     match self {
@@ -656,13 +656,13 @@ fn gen_enum_serialize(type_name: &TokenStream, vs: &data::Variants) -> TokenStre
             type Future<'w, __F, __W>
             where
                 __F: 'w + ::diny::backend::FormatSerialize,
-                __W: 'w + ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                __W: 'w + ::diny::io::AsyncWrite + ::core::marker::Unpin,
                 = ::diny::backend::SerializeAll<'w, __F, __W, Self, Self::Encoder<__F>>;
     
             fn serialize<'w, __F, __W>(&'w self, format: &'w __F, writer: &'w mut __W) -> Self::Future<'w, __F, __W>
             where
                 __F: ::diny::backend::FormatSerialize,
-                __W: ::futures::io::AsyncWrite + ::core::marker::Unpin,
+                __W: ::diny::io::AsyncWrite + ::core::marker::Unpin,
             {
                 ::diny::backend::SerializeAll::new(format, writer, self, #encode_init)
             }
@@ -703,7 +703,7 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
             quote! {
                 fn #this_method<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<__Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     <<#type_ref as ::diny::backend::Decodable>::Decoder::<__F> as ::diny::backend::Decode>::start_decode(format, reader, cx)
                     .and_then(
@@ -766,7 +766,7 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
             {
                 fn from_index<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<__Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     <<diny::backend::internal::VariantIdx as ::diny::backend::Decodable>::Decoder::<__F> as ::diny::backend::Decode>::start_decode(format, reader, cx)
                     .and_then(
@@ -777,7 +777,7 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
         
                 fn after_index<__R>(index: ::diny::backend::internal::VariantIdx, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<__Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     match *index {
                         #(#dispatch,)*
@@ -801,7 +801,7 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
 
                 fn start_decode<__R>(format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::StartDecodeStatus<Self::Data, Self, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     Self::from_index(format, reader, cx)
                 }
@@ -809,7 +809,7 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
 
                 fn poll_decode<__R>(&mut self, format: &__F, reader: &mut __R, cx: &mut ::core::task::Context<'_>) -> ::diny::backend::PollDecodeStatus<Self::Data, <__F as ::diny::backend::Format>::Error>
                 where
-                    __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                    __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
                 {
                     match self {
                         Self::Init => {
@@ -863,13 +863,13 @@ fn gen_enum_deserialize(type_name: &TokenStream, vs: &data::Variants) -> TokenSt
             type Future<'r, __F, __R>
             where
                 __F: 'r + ::diny::backend::FormatDeserialize,
-                __R: 'r + ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                __R: 'r + ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
             = ::diny::backend::DeserializeExact<'r, __F, __R, Self, Self::Decoder::<__F>>;
     
             fn deserialize<'r, __F, __R>(format: &'r __F, reader: &'r mut __R) -> Self::Future<'r, __F, __R>
             where
                 __F: ::diny::backend::FormatDeserialize,
-                __R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + ::core::marker::Unpin,
+                __R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + ::core::marker::Unpin,
             {
                 ::diny::backend::DeserializeExact::new(format, reader, #decode_init)
             }

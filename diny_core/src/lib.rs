@@ -26,6 +26,9 @@ pub mod buffer;
 /// Helper modules that may be externally useful
 pub mod util;
 
+/// Re-export of io related structures
+pub mod io;
+
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 #[cfg(feature = "diny_derive")]
 pub use diny_derive::AsyncSerialization;

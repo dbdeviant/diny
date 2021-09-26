@@ -1,5 +1,5 @@
 use core::{cmp::min, pin::Pin, task::{Context, Poll}};
-use futures::{AsyncWrite, io::Result};
+use crate::io;
 
 #[allow(unused)] // For Doctest
 use super::AsyncSliceReader;
@@ -82,21 +82,21 @@ impl<'b> AsyncSliceWriter<'b> {
     }
 }
 
-impl AsyncWrite for AsyncSliceWriter<'_> {
-    fn poll_write(mut self: Pin<&mut Self>, _cx: &mut Context<'_>, buf: &[u8]) -> Poll<Result<usize>> {
+impl io::AsyncWrite for AsyncSliceWriter<'_> {
+    fn poll_write(mut self: Pin<&mut Self>, _cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
         let n = self.write_bytes(buf);
         if n > 0 {
             Poll::Ready(Ok(n))
         } else {
-            Poll::Ready(Err(futures::io::ErrorKind::WriteZero.into()))
+            Poll::Ready(Err(io::error::write_zero()))
         }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 
-    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<()>> {
+    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 }

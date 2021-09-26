@@ -5,7 +5,7 @@ macro_rules! serialize_all_def {
 
         pub(crate) fn serialize<'w, W>(format: &'w $format, writer: &'w mut W, data: &$data) -> SerializeAll<'w, W>
         where
-            W: ::futures::io::AsyncWrite + Unpin,
+            W: ::diny::io::AsyncWrite + Unpin,
         {
             SerializeAll::new(format, writer, <$encoder as ::diny::backend::Encode>::init(data))
         }
@@ -18,7 +18,7 @@ macro_rules! deserialize_exact_def {
 
         pub(crate) fn deserialize<'r, R>(format: &'r $format, reader: &'r mut R) -> DeserializeExact<'r, R>
         where
-            R: ::futures::io::AsyncRead + ::futures::io::AsyncBufRead + Unpin,
+            R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + Unpin,
         {
             DeserializeExact::new(format, reader, <$decoder as ::diny::backend::Decode>::init())
         }

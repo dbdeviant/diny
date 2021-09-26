@@ -1,6 +1,7 @@
 macro_rules! usize_wrapper_def {
     ($t:ident, $ser_fn:ident, $ser_enc: ident, $ser_fut: ident, $deser_fn: ident, $deser_dec: ident, $deser_fut: ident) => {
         use crate::backend::{Decodable, AsyncDeserialize, Encodable, FormatDecode, FormatDeserialize, FormatEncode, FormatSerialize, AsyncSerialize};
+        use crate::io;
 
         #[repr(transparent)]
         #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -49,13 +50,13 @@ macro_rules! usize_wrapper_def {
             type Future<'w, F, W>
             where
                 F: 'w + FormatSerialize,
-                W: 'w + futures::AsyncWrite + Unpin,
+                W: 'w + io::AsyncWrite + Unpin,
             = F::$ser_fut<'w, W>;
         
             fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
             where
                 F: crate::backend::FormatSerialize,
-                W: futures::AsyncWrite + Unpin,
+                W: io::AsyncWrite + Unpin,
             {
                 F::$ser_fn(format, writer, self)
             }
@@ -72,13 +73,13 @@ macro_rules! usize_wrapper_def {
             type Future<'r, F, R>
             where
                 F: 'r + FormatDeserialize,
-                R: 'r + ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
+                R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
             = F::$deser_fut<'r, R>;
         
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
                 F: FormatDeserialize,
-                R: ::futures::AsyncRead + ::futures::AsyncBufRead + Unpin,
+                R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
                 F::$deser_fn(format, reader)
             }

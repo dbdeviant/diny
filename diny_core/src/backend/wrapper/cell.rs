@@ -1,7 +1,6 @@
 use core::marker::PhantomData;
 use core::task::Context;
-use futures::{AsyncRead, AsyncBufRead};
-use crate::{backend, AsyncSerialize};
+use crate::{backend, AsyncSerialize, io};
 
 type Data<T> = ::std::cell::Cell<T>;
 
@@ -27,7 +26,7 @@ where
 
     fn start_encode<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         T::Encoder::<F>::start_encode(format, writer, &data.get(), cx)
         .map_pending(Self)
@@ -35,7 +34,7 @@ where
 
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::PollEncodeStatus<<F as backend::Format>::Error>
     where
-        W: futures::AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
          self.0.poll_encode(format, writer, &data.get(), cx)
     }
@@ -58,14 +57,14 @@ where
     type Future<'w, F, W>
     where
         Self: 'w,
-        F: 'w + crate::backend::FormatSerialize,
-        W: 'w + ::futures::AsyncWrite + Unpin,
+        F: 'w + backend::FormatSerialize,
+        W: 'w + io::AsyncWrite + Unpin,
     = backend::SerializeAll<'w, F, W, Self, Self::Encoder<F>>;
 
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
-        F: crate::backend::FormatSerialize,
-        W: ::futures::AsyncWrite + Unpin,
+        F: backend::FormatSerialize,
+        W: io::AsyncWrite + Unpin,
     {
         backend::SerializeAll::new(format, writer, self, <Self::Encoder::<F> as backend::Encode>::init(self))
     }

@@ -12,7 +12,7 @@
 pub mod internal;
 
 use core::future::Future;
-use futures::{AsyncRead, AsyncBufRead, AsyncWrite};
+use crate::io;
 
 #[doc(inline)]
 pub use self::{
@@ -67,7 +67,7 @@ pub trait AsyncSerialize: Encodable
     where
         Self: 'w,
         F: 'w + FormatSerialize,
-        W: 'w + AsyncWrite + Unpin,
+        W: 'w + io::AsyncWrite + Unpin,
     ;
 
     /// Attempt to serialize the type asynchronously for the indicated [format](Format)
@@ -75,7 +75,7 @@ pub trait AsyncSerialize: Encodable
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
         F: FormatSerialize,
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     ;
 }
 
@@ -86,7 +86,7 @@ pub trait AsyncDeserialize: Decodable
     type Future<'r, F, R>: Future<Output=Result<Self, F::Error>> + Unpin
     where
         F: 'r + FormatDeserialize,
-        R: 'r + AsyncRead + AsyncBufRead + Unpin,
+        R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
     ;
 
     /// Attempt to deserialize the type asynchronously for the indicated [format](Format)
@@ -94,7 +94,7 @@ pub trait AsyncDeserialize: Decodable
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
         F: FormatDeserialize,
-        R: AsyncRead + AsyncBufRead + Unpin,
+        R: io::AsyncRead + io::AsyncBufRead + Unpin,
     ;
 }
 

@@ -12,7 +12,7 @@ macro_rules! numeric_encode_decode_def {
         
             fn start_encode_buffer<W>(_format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, Error>
             where
-                W: AsyncWrite + Unpin,
+                W: io::AsyncWrite + Unpin,
             {
                 let mut enc = Self::init_buffer(data);
                 enc.0.start_write(writer, cx)
@@ -21,7 +21,7 @@ macro_rules! numeric_encode_decode_def {
 
             fn poll_encode_buffer<W>(&mut self, _format: &Self::Format, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
             where
-                W: AsyncWrite + Unpin,
+                W: io::AsyncWrite + Unpin,
             {
                 self.0.write_remaining(writer, cx)
             }
@@ -39,7 +39,7 @@ macro_rules! numeric_encode_decode_def {
         
             fn start_decode<R>(_format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, Error>
             where
-                R: AsyncRead + AsyncBufRead + Unpin,
+                R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
                 let mut dec = Self::init();
                 match (&mut dec.0).start_read(reader, cx) {
@@ -51,7 +51,7 @@ macro_rules! numeric_encode_decode_def {
 
             fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, Error>
             where
-                R: AsyncRead + AsyncBufRead + Unpin,
+                R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
                 match (&mut self.0).read_remaining(reader, cx) {
                     backend::PollDecodeStatus::Fini(())   => from_le_bytes(*self.0.buffer()).into(),
@@ -66,8 +66,7 @@ macro_rules! numeric_encode_decode_def {
 macro_rules! numeric_def {
     ($t:ty, $bytes:literal) => {
         use core::task::Context;
-        use futures::{AsyncRead, AsyncBufRead, AsyncWrite};    
-        use diny::{backend, buffer::{buffer_state::BufferState}};
+        use diny::{backend, buffer::{buffer_state::BufferState}, io};
         use $crate::Formatter as ThisFormat;
 
         type Error = <ThisFormat as backend::Format>::Error;
@@ -94,8 +93,7 @@ macro_rules! numeric_def {
 macro_rules! usize_wrapper_def {
     ($t: ty, $repr: ty, $m: path) => {
         use core::{convert::TryInto, task::Context};
-        use futures::{AsyncRead, AsyncBufRead, AsyncWrite};        
-        use diny::{backend::{self, Format}, buffer};
+        use diny::{backend::{self, Format}, buffer, io};
         
         use crate::{
             Formatter as ThisFormat,
@@ -121,7 +119,7 @@ macro_rules! usize_wrapper_def {
         
             fn start_encode_buffer<W>(format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <<Self as diny::buffer::BufferEncode>::Format as backend::Format>::Error>
             where
-                W: AsyncWrite + Unpin,
+                W: io::AsyncWrite + Unpin,
             {
                 match TryInto::<$repr>::try_into(Into::<usize>::into(*data)) {
                     Ok(n) => {
@@ -137,7 +135,7 @@ macro_rules! usize_wrapper_def {
 
             fn poll_encode_buffer<W>(&mut self, format: &ThisFormat, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<Error>
             where
-                W: AsyncWrite + Unpin,
+                W: io::AsyncWrite + Unpin,
             {
                 match &mut self.0 {
                     None      => backend::PollEncodeStatus::Error(ThisFormat::invalid_data_err()),
@@ -158,7 +156,7 @@ macro_rules! usize_wrapper_def {
         
             fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::StartDecodeStatus<Self::Data, Self, <<Self as diny::backend::Decode>::Format as Format>::Error>
             where
-                R: AsyncRead + AsyncBufRead + Unpin,
+                R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
                 match wrapper::Decoder::start_decode(format, reader, cx) {
                     diny::backend::StartDecodeStatus::Fini(n) => match TryInto::<usize>::try_into(n) {
@@ -172,7 +170,7 @@ macro_rules! usize_wrapper_def {
 
             fn poll_decode<R>(&mut self, format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
             where
-                R: AsyncRead + AsyncBufRead + Unpin,
+                R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
                 match self.0.poll_decode(format, reader, cx) {
                     diny::backend::PollDecodeStatus::Fini(n) => match TryInto::<usize>::try_into(n) {

@@ -1,8 +1,7 @@
 use core::task::Context;
 
-use futures::{AsyncRead, AsyncWrite};
 use crate::buffer::BufferCursor;
-use crate::backend;
+use crate::{backend, io};
 
 
 /// A convenient struct to represent serialization of an underlying
@@ -78,32 +77,32 @@ impl<const LEN: usize> BufferState<LEN> {
         self.cur.extend_len(::core::cmp::min(LEN - self.cur.len(), n));
     }
 
-    pub fn start_write<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<futures::io::Error>
+    pub fn start_write<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<io::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         self.cur.start_write(writer, &self.buf, cx)
     }
 
     /// Attempt to write all remaining bytes from the buffer.
-    pub fn write_remaining<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<futures::io::Error>
+    pub fn write_remaining<W>(&mut self, writer: &mut W, cx: &mut Context<'_>) -> backend::PollEncodeStatus<io::Error>
     where
-        W: AsyncWrite + Unpin,
+        W: io::AsyncWrite + Unpin,
     {
         self.cur.write_remaining(writer, &self.buf, cx)
     }
 
-    pub fn start_read<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
+    pub fn start_read<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>
     where
-        R: AsyncRead + Unpin,
+        R: io::AsyncRead + Unpin,
     {
         self.cur.start_read(reader, &mut self.buf, cx)
     }
 
     /// Attempt to read all remaining bytes into the buffer.
-    pub fn read_remaining<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), futures::io::Error>
+    pub fn read_remaining<R>(&mut self, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>
     where
-        R: AsyncRead + Unpin,
+        R: io::AsyncRead + Unpin,
     {
         self.cur.read_remaining(reader, &mut self.buf, cx)
     }
