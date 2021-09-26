@@ -289,13 +289,13 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             struct __PartialData #partial_field_def
 
             impl __PartialData {
-                pub fn new() -> Self {
+                fn new() -> Self {
                     Self {
                         #(#partial_field_defaults,)*
                     }
                 }
 
-                pub fn into_data(self) -> ::core::option::Option<__Data> {
+                fn into_data(self) -> ::core::option::Option<__Data> {
                     ::core::option::Option::Some(__Data {
                         #(#partial_field_assignments,)*
                     })
@@ -330,7 +330,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             where
                 __F: ::diny::backend::FormatDecode,
             {
-                pub fn new() -> Self {
+                fn new() -> Self {
                     Self {
                         data: __PartialData::new(),
                         cursor: __DecodeCursor::Init,
@@ -349,7 +349,7 @@ fn gen_struct_deserialize(type_name: &TokenStream, fs: &data::Fields) -> TokenSt
             where
                 __F: ::diny::backend::FormatDecode,
             {
-                pub fn new() -> Self {
+                fn new() -> Self {
                     Self {
                         state: ::core::option::Option::Some(__DecodeState::new()),
                     }
