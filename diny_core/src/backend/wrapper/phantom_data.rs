@@ -10,12 +10,12 @@ wrapper_async_serialize_impl!();
 wrapper_decodable_impl!();
 wrapper_async_deserialize_impl!();
 
-pub struct Encode<F, T>(<() as backend::Encodable>::Encoder::<F>, PhantomData<T>)
+pub struct Encoder<F, T>(<() as backend::Encodable>::Encoder::<F>, PhantomData<T>)
 where
     F: backend::FormatEncode,
 ;
 
-impl<F, T> backend::Encode for Encode<F, T>
+impl<F, T> backend::Encode for Encoder<F, T>
 where
     F: backend::FormatEncode,
     T: backend::Encodable,
@@ -43,13 +43,13 @@ where
     }
 }
 
-pub struct Decode<F, T>(<() as backend::Decodable>::Decoder::<F>, PhantomData<T>)
+pub struct Decoder<F, T>(<() as backend::Decodable>::Decoder::<F>, PhantomData<T>)
 where
     F: backend::FormatDecode,
     T: backend::Decodable,
 ;
 
-impl<F, T> backend::Decode for Decode<F, T>
+impl<F, T> backend::Decode for Decoder<F, T>
 where
     F: backend::FormatDecode,
     T: backend::Decodable,

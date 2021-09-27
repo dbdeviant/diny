@@ -5,7 +5,7 @@ use crate::io;
 
 type Data<T, const L: usize> = [T; L];
 
-pub enum Encode<F, T, const L: usize>
+pub enum Encoder<F, T, const L: usize>
 where
     F: backend::FormatEncode,
     T: backend::Encodable,
@@ -15,7 +15,7 @@ where
     Fini,
 }
 
-impl<F, T, const L: usize> Encode<F, T, L>
+impl<F, T, const L: usize> Encoder<F, T, L>
 where
     F: backend::FormatEncode,
     T: backend::Encodable,
@@ -43,7 +43,7 @@ where
     }
 }
 
-impl<F, T, const L: usize> backend::Encode for Encode<F, T, L>
+impl<F, T, const L: usize> backend::Encode for Encoder<F, T, L>
 where
     F: backend::FormatEncode,
     T: backend::Encodable,
@@ -78,7 +78,7 @@ impl<T, const L: usize> backend::Encodable for Data<T, L>
 where
     T: backend::Encodable,
 {
-    type Encoder<F: backend::FormatEncode> = Encode<F, T, L>;
+    type Encoder<F: backend::FormatEncode> = Encoder<F, T, L>;
 }
 
 
@@ -190,7 +190,7 @@ where
     }
 }
 
-pub struct Decode<F, T, const L: usize>
+pub struct Decoder<F, T, const L: usize>
 where
     F: backend::FormatDecode,
     T: backend::Decodable,
@@ -198,7 +198,7 @@ where
     state: Option<DecodeState<F, T, L>>,
 }
 
-impl<F, T, const L: usize> backend::Decode for Decode<F, T, L>
+impl<F, T, const L: usize> backend::Decode for Decoder<F, T, L>
 where
     F: backend::FormatDecode,
     T: backend::Decodable,
@@ -257,7 +257,7 @@ impl<T, const L: usize> backend::Decodable for Data<T, L>
 where
     T: backend::Decodable,
 {
-    type Decoder<F: backend::FormatDecode> = Decode<F, T, L>;
+    type Decoder<F: backend::FormatDecode> = Decoder<F, T, L>;
 }
 
 impl<T, const L: usize> backend::AsyncDeserialize for Data<T, L>

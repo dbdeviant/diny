@@ -1,7 +1,7 @@
 
 macro_rules! wrapper_encode_def {
     () => {
-        pub struct Encode<F, T>(T::Encoder::<F>)
+        pub struct Encoder<F, T>(T::Encoder::<F>)
         where
             F: backend::FormatEncode,
             T: backend::Encodable,
@@ -11,7 +11,7 @@ macro_rules! wrapper_encode_def {
 
 macro_rules! wrapper_encode_impl_deref {
     () => {
-        impl<F, T> backend::Encode for Encode<F, T>
+        impl<F, T> backend::Encode for Encoder<F, T>
         where
             F: backend::FormatEncode,
             T: backend::Encodable,
@@ -50,7 +50,7 @@ macro_rules! wrapper_encodable_impl {
             type Encoder<F>
             where
                 F: backend::FormatEncode,
-            = Encode<F, T>;
+            = Encoder<F, T>;
         }
     };
 }
@@ -81,7 +81,7 @@ macro_rules! wrapper_async_serialize_impl {
 
 macro_rules! wrapper_decode_def {
     () => {
-        pub struct Decode<F, T>(T::Decoder::<F>, PhantomData<F>)
+        pub struct Decoder<F, T>(T::Decoder::<F>, PhantomData<F>)
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -91,7 +91,7 @@ macro_rules! wrapper_decode_def {
 
 macro_rules! wrapper_decode_impl {
     () => {
-        impl<F, T> backend::Decode for Decode<F, T>
+        impl<F, T> backend::Decode for Decoder<F, T>
         where
             F: backend::FormatDecode,
             T: backend::Decodable,
@@ -131,7 +131,7 @@ macro_rules! wrapper_decodable_impl {
         where
             T: backend::Decodable,
         {
-            type Decoder<F: backend::FormatDecode> = Decode<F, T>;
+            type Decoder<F: backend::FormatDecode> = Decoder<F, T>;
         }
     };
 }

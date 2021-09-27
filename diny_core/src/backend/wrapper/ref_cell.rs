@@ -13,13 +13,13 @@ wrapper_decodable_impl!();
 wrapper_async_deserialize_impl!();        
 
 
-pub struct Encode<F, T>(Option<T::Encoder::<F>>)
+pub struct Encoder<F, T>(Option<T::Encoder::<F>>)
 where
     F: backend::FormatEncode,
     T: backend::Encodable,
 ;
 
-impl<F, T> backend::Encode for Encode<F, T>
+impl<F, T> backend::Encode for Encoder<F, T>
 where
     F: backend::FormatEncode,
     T: backend::Encodable,

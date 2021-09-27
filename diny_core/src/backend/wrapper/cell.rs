@@ -12,7 +12,7 @@ wrapper_decodable_impl!();
 wrapper_async_deserialize_impl!();        
 
 
-impl<F, T> backend::Encode for Encode<F, T>
+impl<F, T> backend::Encode for Encoder<F, T>
 where
     F: backend::FormatEncode,
     T: backend::Encodable + Copy,
@@ -47,7 +47,7 @@ where
     type Encoder<F>
     where
         F: backend::FormatEncode,
-    = Encode<F, T>;
+    = Encoder<F, T>;
 }
 
 impl<'t, T> AsyncSerialize for Data<T>

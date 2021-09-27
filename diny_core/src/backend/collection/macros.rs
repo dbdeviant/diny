@@ -15,7 +15,7 @@ macro_rules! seq_collection_def {
         type Len = usize;
         type Idx = usize;
 
-        pub enum Encode<F, T $(, $s)?>
+        pub enum Encoder<F, T $(, $s)?>
         where
             F: backend::FormatEncode,
             T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
@@ -28,7 +28,7 @@ macro_rules! seq_collection_def {
             $(#[allow(dead_code)] Phantom(PhantomData<* const $s>))?
         }
 
-        impl<F, T $(, $s)?> Encode<F, T $(, $s)?>
+        impl<F, T $(, $s)?> Encoder<F, T $(, $s)?>
         where
             F: backend::FormatEncode,
             T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
@@ -73,7 +73,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        impl<F, T $(, $s)?> backend::Encode for Encode<F, T $(, $s)?>
+        impl<F, T $(, $s)?> backend::Encode for Encoder<F, T $(, $s)?>
         where
             F: backend::FormatEncode,
             T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
@@ -117,7 +117,7 @@ macro_rules! seq_collection_def {
             T: backend::Encodable $(+ $t_bound $(+ $t_bounds)*)?,
             $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            type Encoder<F: backend::FormatEncode> = Encode<F, T $(, $s)?>;
+            type Encoder<F: backend::FormatEncode> = Encoder<F, T $(, $s)?>;
         }
 
         impl<T $(, $s)?> backend::AsyncSerialize for Data<T $(, $s)?>
@@ -247,7 +247,7 @@ macro_rules! seq_collection_def {
             }
         }
 
-        pub struct Decode<F, T $(, $s)?>
+        pub struct Decoder<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
             T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
@@ -256,7 +256,7 @@ macro_rules! seq_collection_def {
             state: Option<DecodeState<F, T $(, $s)?>>,
         }
 
-        impl<F, T $(, $s)?> backend::Decode for Decode<F, T $(, $s)?>
+        impl<F, T $(, $s)?> backend::Decode for Decoder<F, T $(, $s)?>
         where
             F: backend::FormatDecode,
             T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
@@ -326,7 +326,7 @@ macro_rules! seq_collection_def {
             T: backend::Decodable $(+ $t_bound $(+ $t_bounds)*)?,
             $($s: $s_bound $(+ $s_bounds)*,)?
         {
-            type Decoder<F: backend::FormatDecode> = Decode<F, T $(, $s)?>;
+            type Decoder<F: backend::FormatDecode> = Decoder<F, T $(, $s)?>;
         }
 
         impl<T $(, $s)?> backend::AsyncDeserialize for Data<T $(, $s)?>

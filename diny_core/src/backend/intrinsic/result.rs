@@ -5,7 +5,7 @@ use crate::io;
 
 type Data<O, E> = Result<O, E>;
 
-pub enum Encode<F, O, E>
+pub enum Encoder<F, O, E>
 where
     F: backend::FormatEncode,
     O: backend::Encodable,
@@ -18,7 +18,7 @@ where
     Fini,
 }
 
-impl<F, O, E> Encode<F, O, E>
+impl<F, O, E> Encoder<F, O, E>
 where
     F: backend::FormatEncode,
     O: backend::Encodable,
@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<F, O, E> backend::Encode for Encode<F, O, E>
+impl<F, O, E> backend::Encode for Encoder<F, O, E>
 where
     F: backend::FormatEncode,
     O: backend::Encodable,
@@ -124,7 +124,7 @@ where
     O: backend::Encodable,
     E: backend::Encodable,
 {
-    type Encoder<F: backend::FormatEncode> = Encode<F, O, E>;
+    type Encoder<F: backend::FormatEncode> = Encoder<F, O, E>;
 }
 
 
@@ -151,7 +151,7 @@ where
 }
 
 
-pub enum Decode<F, O, E>
+pub enum Decoder<F, O, E>
 where
     F: backend::FormatDecode,
     O: backend::Decodable,
@@ -164,7 +164,7 @@ where
     Fini,
 }
 
-impl<F, O, E> Decode<F, O, E>
+impl<F, O, E> Decoder<F, O, E>
 where
     F: backend::FormatDecode,
     O: backend::Decodable,
@@ -215,7 +215,7 @@ where
     }
 }
 
-impl<F, O, E> backend::Decode for Decode<F, O, E>
+impl<F, O, E> backend::Decode for Decoder<F, O, E>
 where
     F: backend::FormatDecode,
     O: backend::Decodable,
@@ -254,7 +254,7 @@ where
     O: backend::Decodable,
     E: backend::Decodable,
 {
-    type Decoder<F: backend::FormatDecode> = Decode<F, O, E>;
+    type Decoder<F: backend::FormatDecode> = Decoder<F, O, E>;
 }
 
 impl<O, E> backend::AsyncDeserialize for Data<O, E>
