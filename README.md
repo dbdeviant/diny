@@ -38,8 +38,8 @@ Add a dependency on `diny` and a serializer format in `Cargo.toml`:
 
 ```toml
 [dependencies]
-diny = { version = "0.1", features = ["derive"] }
-diny_test = "0.1"
+diny = { version = "0.2", features = ["derive"] }
+diny_test = "0.2"
 ```
 
 Turn on the feature for GAT's and derive AsyncSerialize / AsyncDeserialize

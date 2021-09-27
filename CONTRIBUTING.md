@@ -6,7 +6,7 @@ are thinking of helping us.
 
 ## Getting help
 
-**diny** is very much a work in progress and there are many pending design decisions before it can be considered fully implemented and documented, let alone stable. It is intended to only be used for experimentation and design feedback at this point.  In fact, only a limited subset of data structures are currently supported, and won't be available until the project hits v0.1.0.  (This is to enable faster iteration on design changes)  If you're adventurous and would like to provide some feedback, please hit us up with your ideas [here](https://github.com/dbdeviant/diny/discussions).
+**diny** is very much a work in progress and there are many pending design decisions before it can be considered fully implemented and documented, let alone stable. It is intended to only be used for experimentation and design feedback at this point.  In fact, only a limited subset of data structures are currently supported, and won't be fully available until the project hits v0.3.  (This is to enable faster iteration on design changes)  If you're adventurous and would like to provide some feedback, please hit us up with your ideas [here](https://github.com/dbdeviant/diny/discussions).
 
 ## Opening issues
 
