@@ -63,7 +63,7 @@ impl<Err> From<PollEncodeStatus<Err>> for Poll<Result<(), Err>> {
     }
 }
 
-/// Attempt to encode a data structure to an [asynchronous writer](AsyncWrite)
+/// Attempt to encode a data structure to an [asynchronous writer](io::AsyncWrite)
 /// for a particular [format](FormatEncode).
 pub trait Encode: Sized {
     /// The concrete [format](FormatEncode) to encode with.
@@ -75,7 +75,7 @@ pub trait Encode: Sized {
     /// Initialize the internal state of the encoder.
     fn init(data: &Self::Data) -> Self;
 
-    /// Begin encoding bytes for the indicated [format](FormatEncode) to the provided [writer](AsyncWrite).
+    /// Begin encoding bytes for the indicated [format](FormatEncode) to the provided [writer](io::AsyncWrite).
     ///
     /// This is intended to be overriden whenever an optimized code path exists for the (usual) case where
     /// enough buffer space is available that the operation will succeed immediately without [pending](Poll).

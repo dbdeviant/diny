@@ -71,7 +71,7 @@ pub trait AsyncSerialize: Encodable
     ;
 
     /// Attempt to serialize the type asynchronously for the indicated [format](Format)
-    /// via the provided [asynchronous writer](AsyncWrite).
+    /// via the provided [asynchronous writer](io::AsyncWrite).
     fn serialize<'w, F, W>(&'w self, format: &'w F, writer: &'w mut W) -> Self::Future<'w, F, W>
     where
         F: FormatSerialize,
@@ -90,7 +90,7 @@ pub trait AsyncDeserialize: Decodable
     ;
 
     /// Attempt to deserialize the type asynchronously for the indicated [format](Format)
-    /// via the provided [asynchronous reader](AsyncRead).
+    /// via the provided [asynchronous reader](io::AsyncRead).
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
         F: FormatDeserialize,

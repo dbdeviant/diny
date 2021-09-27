@@ -1,5 +1,6 @@
 #[macro_export]
-///
+/// Starts [encoding](crate::backend::Encode) by calling the `$enc` expression, and converts the
+/// result to a [PollEncodeStatus](crate::backend::PollEncodeStatus)
 macro_rules! encode_chain {
     ($lhs: expr, $enc: expr) => {
         match $enc {
@@ -19,7 +20,9 @@ macro_rules! encode_chain {
     };
 }
 
-///
+/// Continues [encoding](crate::backend::Encode) by first polling the `$enc` expression, and then
+/// calling the `$chain` expression, and finally converts the
+/// result to a [PollEncodeStatus](crate::backend::PollEncodeStatus)
 #[macro_export]
 macro_rules! encode_poll_chain {
     ($lhs: expr, $enc: expr, $chain: expr) => {
@@ -36,7 +39,8 @@ macro_rules! encode_poll_chain {
     };
 }
 
-///
+/// Finalizes [encoding](crate::backend::Encode) by polling the `$enc` expression, and converts
+/// the result to a [PollEncodeStatus](crate::backend::PollEncodeStatus)
 #[macro_export]
 macro_rules! encode_poll_fini {
     ($lhs: expr, $enc: expr) => {
@@ -57,7 +61,8 @@ macro_rules! encode_poll_fini {
 }
 
 
-///
+/// Starts [decoding](crate::backend::Decode) by calling the `$dec` expression, and converts the
+/// result to a [PollDecodeStatus](crate::backend::PollDecodeStatus)
 #[macro_export]
 macro_rules! decode_chain {
     ($lhs: expr, $rhs: ident, $dec: expr) => {
@@ -78,14 +83,16 @@ macro_rules! decode_chain {
     };
 }
 
-///
+/// Continues [decoding](crate::backend::Decode) by first polling the `$dec` expression, and then
+/// calling the `$chain` closure with any resulting data, and finally converts the
+/// result to a [PollDecodeStatus](crate::backend::PollDecodeStatus)
 #[macro_export]
 macro_rules! decode_poll_chain {
-    ($lhs: expr, $rhs: ident, $enc: expr, $cont: expr) => {
-        match $enc {
+    ($lhs: expr, $rhs: ident, $dec: expr, $chain: expr) => {
+        match $dec {
             #[allow(clippy::redundant_closure_call)]
             $crate::backend::PollDecodeStatus::Fini(d) => {
-                $crate::decode_chain!($lhs, $rhs, ($cont)(d))
+                $crate::decode_chain!($lhs, $rhs, ($chain)(d))
             }
             $crate::backend::PollDecodeStatus::Pending => {
                 $crate::backend::PollDecodeStatus::Pending
@@ -98,7 +105,9 @@ macro_rules! decode_poll_chain {
     };
 }
 
-///
+/// Finalizes [decoding](crate::backend::Decode) by polling the `$dec` expression, converts
+/// the final data by calling the `$fini` closure, and finally converts
+/// the result to a [PollDecodeStatus](crate::backend::PollDecodeStatus)
 #[macro_export]
 macro_rules! decode_poll_fini {
     ($lhs: expr, $rhs: ident, $dec: expr, $fin: expr) => {

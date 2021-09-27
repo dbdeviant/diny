@@ -161,7 +161,7 @@ impl<Dta, Err> From<PollDecodeStatus<Dta, Err>> for Poll<Result<Dta, Err>> {
     }
 }
 
-/// Attempt to decode a data structure from an [asynchronous reader](AsyncRead)
+/// Attempt to decode a data structure from an [asynchronous reader](io::AsyncRead)
 /// for a particular [format](FormatDecode)
 pub trait Decode: Sized {
     /// The concrete [format](FormatDecode) to decode with.
@@ -173,10 +173,10 @@ pub trait Decode: Sized {
     /// Initialize the internal state of the decoder.
     fn init() -> Self;
 
-    /// Begin decoding bytes for the indicated [format](FormatDecode) from the provided [reader](AsyncRead).
+    /// Begin decoding bytes for the indicated [format](FormatDecode) from the provided [reader](io::AsyncRead).
     ///
     /// This is intended to be overriden whenever an optimized code path exists for the (usual) case where
-    /// enough bytes have been buffered into the [reader](AsyncBufRead) that the operation will
+    /// enough bytes have been buffered into the [reader](io::AsyncBufRead) that the operation will
     /// succeed immediately without [pending](Poll).
     ///
     /// # Implementation

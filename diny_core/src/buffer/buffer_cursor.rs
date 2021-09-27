@@ -103,7 +103,7 @@ impl BufferCursor {
     /// Attempt to write all of the bytes in `data`, starting from the current
     /// offset of the cursor.
     ///
-    /// This implementation differs from a typical [AsyncWrite] operation in that
+    /// This implementation differs from a typical [AsyncWrite](io::AsyncWrite) operation in that
     /// the contents of data are expected to be unchanging from one call to the
     /// next, despite progress being made.  The expectation is that the caller
     /// does not need to retain any information about the progress of the write,
@@ -156,7 +156,7 @@ impl BufferCursor {
     /// Attempt to read all remaining bytes that are expected into `data`, starting
     /// from the current offset of the cursor.
     ///
-    /// This implementation differs from a typical [AsyncRead] operation in that
+    /// This implementation differs from a typical [AsyncRead](io::AsyncRead) operation in that
     /// the contents of data are expected to be unchanging from one call to the
     /// next, despite progress being made.  The expectation is that the caller
     /// does not need to retain any information about the progress of the read,
@@ -178,7 +178,7 @@ impl BufferCursor {
     }
 
     /// Semantically equivalent to `read_remaining`, only this method takes advantage
-    /// of the [AsyncBufRead] trait to minimize the number of copies required to transfer
+    /// of the [AsyncBufRead](io::AsyncBufRead) trait to minimize the number of copies required to transfer
     /// the bytes into a pre-allocated [Vec].
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn fill_vec<R>(&mut self, mut reader: &mut R, data: &mut Vec<u8>, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>

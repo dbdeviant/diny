@@ -50,7 +50,7 @@ pub struct AsyncSliceWriter<'b>{
 
 impl<'b> AsyncSliceWriter<'b> {
     /// Instantiates a new async reader that implements
-    /// [AsyncWrite] over the provided slice.
+    /// [AsyncWrite](io::AsyncWrite) over the provided slice.
     pub fn new(buf: &'b mut [u8]) -> Self {
         Self { buf, cur: 0 }
     }
