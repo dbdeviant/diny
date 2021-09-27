@@ -19,4 +19,10 @@ mod macros;
 #[doc(hidden)] pub mod f32  { primitive_def!(f32 , serialize_f32 , EncodeF32 , SerializeF32 , deserialize_f32 , DecodeF32 , DeserializeF32 ); }
 #[doc(hidden)] pub mod f64  { primitive_def!(f64 , serialize_f64 , EncodeF64 , SerializeF64 , deserialize_f64 , DecodeF64 , DeserializeF64 ); }
 
+#[doc(hidden)] pub mod byte_slice { serialize!([u8], serialize_byte_slice, EncodeByteSlice, SerializeByteSlice); }
+
 #[doc(hidden)] pub mod char { primitive_def!(char, serialize_char, EncodeChar, SerializeChar, deserialize_char, DecodeChar, DeserializeChar); }
+#[cfg(any(feature = "std", feature = "alloc"))]
+#[doc(hidden)] pub mod string { primitive_def!(String, serialize_string, EncodeString, SerializeString, deserialize_string, DecodeString, DeserializeString); }
+
+#[doc(hidden)] pub mod str   { serialize!(str , serialize_str  , EncodeStr  , SerializeStr  ); }

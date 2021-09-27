@@ -1,4 +1,4 @@
-use core::{task::Context};
+use core::task::{Context, Poll};
 use crate::backend::{Format, FormatDecode};
 use crate::io;
 
@@ -146,6 +146,17 @@ impl<Dta, Err> From<Result<Dta, Err>> for PollDecodeStatus<Dta, Err> {
         match result {
             Ok(o)  => PollDecodeStatus::Fini(o),
             Err(e) => PollDecodeStatus::Error(e),
+        }
+    }
+}
+
+impl<Dta, Err> From<PollDecodeStatus<Dta, Err>> for Poll<Result<Dta, Err>> {
+    #[inline(always)]
+    fn from(status: PollDecodeStatus<Dta, Err>) -> Self {
+        match status {
+            PollDecodeStatus::Fini(d) => Poll::Ready(Ok(d)),
+            PollDecodeStatus::Pending => Poll::Pending,
+            PollDecodeStatus::Error(e) => Poll::Ready(Err(e)),
         }
     }
 }

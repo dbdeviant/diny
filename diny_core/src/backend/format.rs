@@ -38,7 +38,12 @@ pub trait FormatEncode: Format {
     type EncodeF32 : Encode<Data=f32 , Format=Self>;
     type EncodeF64 : Encode<Data=f64 , Format=Self>;
 
-    type EncodeChar: Encode<Data=char, Format=Self>;
+    type EncodeByteSlice: Encode<Data=[u8], Format=Self>;
+
+    type EncodeChar  : Encode<Data=char, Format=Self>;
+    type EncodeStr   : Encode<Data=str , Format=Self>;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type EncodeString: Encode<Data=String, Format=Self>;
 
     type EncodeVariantIdx : Encode<Data=VariantIdx , Format=Self>;
     type EncodeSequenceLen: Encode<Data=SequenceLen, Format=Self>;
@@ -64,7 +69,12 @@ pub trait FormatSerialize: FormatEncode {
     type SerializeF32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
     type SerializeF64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeChar<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeByteSlice<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+
+    type SerializeChar  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeStr   <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type SerializeString<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
 
     type SerializeVariantIdx <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
     type SerializeSequenceLen<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
@@ -87,7 +97,13 @@ pub trait FormatSerialize: FormatEncode {
     fn serialize_f32 <'w, W>(&'w self, writer: &'w mut W, data: &f32 ) -> Self::SerializeF32 <'w, W> where W: io::AsyncWrite + Unpin;
     fn serialize_f64 <'w, W>(&'w self, writer: &'w mut W, data: &f64 ) -> Self::SerializeF64 <'w, W> where W: io::AsyncWrite + Unpin;
 
-    fn serialize_char<'w, W>(&'w self, writer: &'w mut W, data: &char) -> Self::SerializeChar<'w, W> where W: io::AsyncWrite + Unpin;
+    fn serialize_byte_slice<'w, W>(&'w self, writer: &'w mut W, data: &'w [u8]) -> Self::SerializeByteSlice<'w, W> where W: io::AsyncWrite + Unpin;
+
+    fn serialize_char  <'w, W>(&'w self, writer: &'w mut W, data: &char     ) -> Self::SerializeChar  <'w, W> where W: io::AsyncWrite + Unpin;
+    fn serialize_str   <'w, W>(&'w self, writer: &'w mut W, data: &'w str   ) -> Self::SerializeStr   <'w, W> where W: io::AsyncWrite + Unpin;
+    #[allow(clippy::ptr_arg)]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn serialize_string<'w, W>(&'w self, writer: &'w mut W, data: &'w String) -> Self::SerializeString<'w, W> where W: io::AsyncWrite + Unpin;
 
     fn serialize_variant_idx <'w, W>(&'w self, writer: &'w mut W, data: &VariantIdx ) -> Self::SerializeVariantIdx <'w, W> where W: io::AsyncWrite + Unpin;
     fn serialize_sequence_len<'w, W>(&'w self, writer: &'w mut W, data: &SequenceLen) -> Self::SerializeSequenceLen<'w, W> where W: io::AsyncWrite + Unpin;
@@ -113,7 +129,11 @@ pub trait FormatDecode: Format {
     type DecodeF32 : Decode<Data=f32 , Format=Self>;
     type DecodeF64 : Decode<Data=f64 , Format=Self>;
 
-    type DecodeChar: Decode<Data=char, Format=Self>;
+    type DecodeByteVec: Decode<Data=Vec<u8>, Format=Self>;
+
+    type DecodeChar  : Decode<Data=char  , Format=Self>;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type DecodeString: Decode<Data=String, Format=Self>;
 
     type DecodeVariantIdx : Decode<Data=VariantIdx , Format=Self>;
     type DecodeSequenceLen: Decode<Data=SequenceLen, Format=Self>;
@@ -139,7 +159,9 @@ pub trait FormatDeserialize: FormatDecode {
     type DeserializeF32 <'r, R>: Future<Output=Result<f32 , Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
     type DeserializeF64 <'r, R>: Future<Output=Result<f64 , Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
 
-    type DeserializeChar<'r, R>: Future<Output=Result<char, Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
+    type DeserializeChar  <'r, R>: Future<Output=Result<char  , Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type DeserializeString<'r, R>: Future<Output=Result<String, Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
 
     type DeserializeVariantIdx <'r, R>: Future<Output=Result<VariantIdx , Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
     type DeserializeSequenceLen<'r, R>: Future<Output=Result<SequenceLen, Self::Error>> + Unpin where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin;
@@ -162,7 +184,9 @@ pub trait FormatDeserialize: FormatDecode {
     fn deserialize_f32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF32 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;
     fn deserialize_f64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF64 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;
 
-    fn deserialize_char<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;
+    fn deserialize_char  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar  <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn deserialize_string<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeString<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;
 
     fn deserialize_variant_idx <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeVariantIdx <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;
     fn deserialize_sequence_len<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeSequenceLen<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin;

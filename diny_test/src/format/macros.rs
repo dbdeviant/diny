@@ -49,7 +49,7 @@ macro_rules! numeric_encode_decode_def {
                 }
             }
 
-            fn poll_decode<R>(&mut self, _format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, Error>
+            fn poll_decode<R>(&mut self, _format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, Error>
             where
                 R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {
@@ -126,7 +126,7 @@ macro_rules! usize_wrapper_def {
                         <wrapper::Encoder as diny::backend::Encode>::start_encode(format, writer, &n.into(), cx)
                         .map_pending(|enc| Self(Some(enc)))
                     }
-                    Err(_) => backend::StartEncodeStatus::Error(ThisFormat::invalid_data_err()),
+                    Err(_) => backend::StartEncodeStatus::Error(Self::Format::invalid_data_err()),
                 }
             }
 
@@ -165,7 +165,7 @@ macro_rules! usize_wrapper_def {
                 )
             }
 
-            fn poll_decode<R>(&mut self, format: &ThisFormat, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
+            fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
             where
                 R: io::AsyncRead + io::AsyncBufRead + Unpin,
             {

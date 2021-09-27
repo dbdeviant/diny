@@ -1,4 +1,4 @@
-use core::task::Context;
+use core::task::{Context, Poll};
 use crate::backend::{Format, FormatEncode};
 use crate::io;
 
@@ -52,6 +52,17 @@ impl<Err> PollEncodeStatus<Err> {
     }
 }
 
+impl<Err> From<PollEncodeStatus<Err>> for Poll<Result<(), Err>> {
+    #[inline(always)]
+    fn from(status: PollEncodeStatus<Err>) -> Self {
+        match status {
+            PollEncodeStatus::Fini     => Poll::Ready(Ok(())),
+            PollEncodeStatus::Pending  => Poll::Pending,
+            PollEncodeStatus::Error(e) => Poll::Ready(Err(e)),
+        }
+    }
+}
+
 /// Attempt to encode a data structure to an [asynchronous writer](AsyncWrite)
 /// for a particular [format](FormatEncode).
 pub trait Encode: Sized {
@@ -59,7 +70,7 @@ pub trait Encode: Sized {
     type Format: FormatEncode;
     
     /// The concrete data structure to encode.
-    type Data;
+    type Data: ?Sized;
 
     /// Initialize the internal state of the encoder.
     fn init(data: &Self::Data) -> Self;

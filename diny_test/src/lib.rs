@@ -55,7 +55,12 @@ impl diny::backend::FormatEncode for Formatter {
     type EncodeF32  = format::f32 ::Encoder;
     type EncodeF64  = format::f64 ::Encoder;
 
-    type EncodeChar = format::char::Encoder;
+    type EncodeByteSlice = format::byte_slice::Encoder;
+
+    type EncodeChar   = format::char::Encoder;
+    type EncodeStr    = format::str ::Encoder;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type EncodeString = format::string::Encoder;
 
     type EncodeVariantIdx  = format::variant_idx ::Encoder;
     type EncodeSequenceLen = format::sequence_len::Encoder;
@@ -81,7 +86,12 @@ impl diny::backend::FormatSerialize for Formatter
     type SerializeF32 <'w, W> where W: 'w + io::AsyncWrite + Unpin = format::f32 ::SerializeAll<'w, W>;
     type SerializeF64 <'w, W> where W: 'w + io::AsyncWrite + Unpin = format::f64 ::SerializeAll<'w, W>;
 
-    type SerializeChar<'w, W> where W: 'w + io::AsyncWrite + Unpin = format::char::SerializeAll<'w, W>;
+    type SerializeByteSlice<'w, W> where W: 'w + io::AsyncWrite + Unpin = format::byte_slice::SerializeAll<'w, W>;
+
+    type SerializeChar  <'w, W> where W: 'w + io::AsyncWrite + Unpin = format::char  ::SerializeAll<'w, W>;
+    type SerializeStr   <'w, W> where W: 'w + io::AsyncWrite + Unpin = format::str   ::SerializeAll<'w, W>;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type SerializeString<'w, W> where W: 'w + io::AsyncWrite + Unpin = format::string::SerializeAll<'w, W>;
 
     type SerializeVariantIdx <'w, W> where W: 'w + io::AsyncWrite + Unpin = format::variant_idx ::SerializeAll<'w, W>;
     type SerializeSequenceLen<'w, W> where W: 'w + io::AsyncWrite + Unpin = format::sequence_len::SerializeAll<'w, W>;
@@ -104,7 +114,12 @@ impl diny::backend::FormatSerialize for Formatter
     fn serialize_f32 <'w, W>(&'w self, writer: &'w mut W, data: &f32 ) -> Self::SerializeF32 <'w, W> where W: io::AsyncWrite + Unpin { format::f32 ::serialize(self, writer, data) }
     fn serialize_f64 <'w, W>(&'w self, writer: &'w mut W, data: &f64 ) -> Self::SerializeF64 <'w, W> where W: io::AsyncWrite + Unpin { format::f64 ::serialize(self, writer, data) }
 
-    fn serialize_char<'w, W>(&'w self, writer: &'w mut W, data: &char) -> Self::SerializeChar<'w, W> where W: io::AsyncWrite + Unpin { format::char::serialize(self, writer, data) }
+    fn serialize_byte_slice<'w, W>(&'w self, writer: &'w mut W, data: &'w [u8]) -> Self::SerializeByteSlice<'w, W> where W: io::AsyncWrite + Unpin { format::byte_slice::serialize(self, writer, data) }
+
+    fn serialize_char  <'w, W>(&'w self, writer: &'w mut W, data: &char     ) -> Self::SerializeChar  <'w, W> where W: io::AsyncWrite + Unpin { format::char  ::serialize(self, writer, data) }
+    fn serialize_str   <'w, W>(&'w self, writer: &'w mut W, data: &'w str   ) -> Self::SerializeStr   <'w, W> where W: io::AsyncWrite + Unpin { format::str   ::serialize(self, writer, data) }
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn serialize_string<'w, W>(&'w self, writer: &'w mut W, data: &'w String) -> Self::SerializeString<'w, W> where W: io::AsyncWrite + Unpin { format::string::serialize(self, writer, data) }
 
     fn serialize_variant_idx <'w, W>(&'w self, writer: &'w mut W, data: &diny::backend::internal::VariantIdx ) -> Self::SerializeVariantIdx <'w, W> where W: io::AsyncWrite + Unpin { format::variant_idx ::serialize(self, writer, data) }
     fn serialize_sequence_len<'w, W>(&'w self, writer: &'w mut W, data: &diny::backend::internal::SequenceLen) -> Self::SerializeSequenceLen<'w, W> where W: io::AsyncWrite + Unpin { format::sequence_len::serialize(self, writer, data) }
@@ -129,7 +144,12 @@ impl diny::backend::FormatDecode for Formatter {
     type DecodeF32  = format::f32 ::Decoder;
     type DecodeF64  = format::f64 ::Decoder;
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type DecodeByteVec = format::byte_vec::Decoder;
+
     type DecodeChar = format::char::Decoder;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type DecodeString = format::string::Decoder;
 
     type DecodeVariantIdx  = format::variant_idx ::Decoder;
     type DecodeSequenceLen = format::sequence_len::Decoder;
@@ -155,7 +175,9 @@ impl diny::backend::FormatDeserialize for Formatter
     type DeserializeF32 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::f32 ::DeserializeExact<'r, R>;
     type DeserializeF64 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::f64 ::DeserializeExact<'r, R>;
 
-    type DeserializeChar<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::char::DeserializeExact<'r, R>;
+    type DeserializeChar  <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::char  ::DeserializeExact<'r, R>;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    type DeserializeString<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::string::DeserializeExact<'r, R>;
 
     type DeserializeVariantIdx <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::variant_idx ::DeserializeExact<'r, R>;
     type DeserializeSequenceLen<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::sequence_len::DeserializeExact<'r, R>;
@@ -178,7 +200,9 @@ impl diny::backend::FormatDeserialize for Formatter
     fn deserialize_f32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF32 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::f32 ::deserialize(self, reader) }
     fn deserialize_f64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF64 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::f64 ::deserialize(self, reader) }
 
-    fn deserialize_char<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::char::deserialize(self, reader) }
+    fn deserialize_char  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar  <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::char  ::deserialize(self, reader) }
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn deserialize_string<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeString<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::string::deserialize(self, reader) }
 
     fn deserialize_variant_idx <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeVariantIdx <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::variant_idx ::deserialize(self, reader) }
     fn deserialize_sequence_len<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeSequenceLen<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::sequence_len::deserialize(self, reader) }

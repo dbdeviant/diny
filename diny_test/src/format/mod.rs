@@ -4,6 +4,12 @@ mod macros;
 pub mod unit;
 pub mod bool;
 pub mod char;
+pub mod str;
+#[cfg(any(feature = "std", feature = "alloc"))]
+pub mod string;
+pub mod byte_slice;
+#[cfg(any(feature = "std", feature = "alloc"))]
+pub mod byte_vec;
 
 pub mod i8   { numeric_def!(i8  , 1 ); }
 pub mod i16  { numeric_def!(i16 , 2 ); }
