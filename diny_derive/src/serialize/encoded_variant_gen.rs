@@ -45,7 +45,7 @@ impl<'a> From<&'a data::Variants<'a>> for EncodedVariantsGen<'a> {
         Self(
             fields
             .iter()
-            .map(|variant| EncodedVariantGen::for_enum(variant))
+            .map(EncodedVariantGen::for_enum)
             .collect::<Vec<_>>()
         )        
     }
