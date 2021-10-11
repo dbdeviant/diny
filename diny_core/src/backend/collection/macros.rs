@@ -214,7 +214,7 @@ macro_rules! seq_collection_def {
         {
             fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 <SequenceLen as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
                 .and_then(
@@ -225,7 +225,7 @@ macro_rules! seq_collection_def {
 
             fn after_len<R>(format: &F, reader: &mut R, len: Len, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 <Data<T $(, $s)?> as CollectionApi<T>>::reserve(data, len);
                 Self::items_from(format, reader, len, 0, data, cx)
@@ -233,7 +233,7 @@ macro_rules! seq_collection_def {
 
             fn items_from<R>(format: &F, reader: &mut R, len: Len, idx: Idx, data: &mut PartialData<T $(, $s)?>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 for i in idx..len {
                     match <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx) {
@@ -271,7 +271,7 @@ macro_rules! seq_collection_def {
 
             fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 let mut data = PartialData::new();
                 match DecodeCursor::after_init(format, reader, &mut data, cx) {
@@ -283,7 +283,7 @@ macro_rules! seq_collection_def {
 
             fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 if let Some(state) = &mut self.state {
                     match &mut state.cursor {
@@ -337,13 +337,13 @@ macro_rules! seq_collection_def {
             type Future<'r, F, R>
             where
                 F: 'r + backend::FormatDeserialize,
-                R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: 'r + io::AsyncBufRead + Unpin,
             = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
 
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
                 F: backend::FormatDeserialize,
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())
             }

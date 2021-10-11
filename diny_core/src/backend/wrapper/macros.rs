@@ -105,7 +105,7 @@ macro_rules! wrapper_decode_impl {
         
             fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 T::Decoder::<F>::start_decode(format, reader, cx)
                 .bimap(
@@ -116,7 +116,7 @@ macro_rules! wrapper_decode_impl {
         
             fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
              {
                 self.0.poll_decode(format, reader, cx)
                 .map(Data::<T>::new)
@@ -145,13 +145,13 @@ macro_rules! wrapper_async_deserialize_impl {
             type Future<'r, F, R>
             where
                 F: 'r + backend::FormatDeserialize,
-                R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: 'r + io::AsyncBufRead + Unpin,
             = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
         
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
                 F: backend::FormatDeserialize,
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())
             }
@@ -179,4 +179,3 @@ macro_rules! wrapper_deref {
         wrapper_async_deserialize_impl!();        
     }
 }
-

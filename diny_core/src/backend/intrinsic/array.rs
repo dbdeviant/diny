@@ -169,14 +169,14 @@ where
 {
     fn after_init<R>(format: &F, reader: &mut R, data: &mut PartialData<T, L>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         Self::fields_from(format, reader, 0, data, cx)
     }
 
     fn fields_from<R>(format: &F, reader: &mut R, idx: usize, data: &mut PartialData<T, L>, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         for i in idx..L {
             match <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx) {
@@ -212,7 +212,7 @@ where
 
     fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         let mut data = PartialData::new();
         match DecodeCursor::after_init(format, reader, &mut data, cx) {
@@ -224,7 +224,7 @@ where
 
     fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         if let Some(state) = &mut self.state {
             match &mut state.cursor {
@@ -267,13 +267,13 @@ where
     type Future<'r, F, R>
     where
         F: 'r + backend::FormatDeserialize,
-        R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: 'r + io::AsyncBufRead + Unpin,
     = backend::DeserializeExact<'r, F, R, Self, Self::Decoder<F>>;
 
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
         F: backend::FormatDeserialize,
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         backend::DeserializeExact::new(format, reader, <Self::Decoder::<F> as backend::Decode>::init())
     }

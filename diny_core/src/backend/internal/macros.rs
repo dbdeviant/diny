@@ -73,13 +73,13 @@ macro_rules! usize_wrapper_def {
             type Future<'r, F, R>
             where
                 F: 'r + FormatDeserialize,
-                R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: 'r + io::AsyncBufRead + Unpin,
             = F::$deser_fut<'r, R>;
         
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
                 F: FormatDeserialize,
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 F::$deser_fn(format, reader)
             }

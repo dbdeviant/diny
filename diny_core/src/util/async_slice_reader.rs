@@ -26,8 +26,7 @@ pub struct AsyncSliceReader<'b>{
 impl Unpin for AsyncSliceReader<'_> {}
 
 impl<'b> AsyncSliceReader<'b> {
-    /// Instantiates a new async reader that implements
-    /// [AsyncRead](io::AsyncRead) and [AsyncBufRead](io::AsyncBufRead)
+    /// Instantiates a new async reader that implements [AsyncBufRead](io::AsyncBufRead)
     /// over the provided slice.
     pub fn new(buf: &'b [u8]) -> Self {
         Self { buf, cur: 0 }

@@ -183,7 +183,7 @@ impl BufferCursor {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn fill_vec<R>(&mut self, mut reader: &mut R, data: &mut Vec<u8>, cx: &mut Context<'_>) -> backend::PollDecodeStatus<(), io::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         debug_assert!(!self.is_error() && self.is_pending());
 

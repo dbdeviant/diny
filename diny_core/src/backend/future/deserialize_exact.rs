@@ -28,7 +28,7 @@ impl<'r, F, R, Dta, Dec> Unpin for DeserializeExact<'r, F, R, Dta, Dec> {}
 impl<'r, F, R, Dta, Dec> core::future::Future for DeserializeExact<'r, F, R, Dta, Dec>
 where
     F: FormatDeserialize,
-    R: io::AsyncRead + io::AsyncBufRead + Unpin,
+    R: io::AsyncBufRead + Unpin,
     Dec: Decode<Format=F, Data=Dta>,
 {
     type Output = Result<Dta, F::Error>;

@@ -28,7 +28,7 @@ It's still a very young project and the design is subject to change, but as of n
     Importantly, **diny** does not currently support anonymous tuple types other than sequences, and doesn't support newtype tuples of any order greater than one (i.e. newtype_struct, newtype_variant).
 
     Additionally, **diny** only supports owned data strutures, though this design constraint may be partially relaxed soon (i.e. serialization support only).
-- **There is only support for binary serialization** vis-a-vis the AsyncWrite, AsyncRead, and AsyncBufRead traits. This is may change in the near future, but alternative, complete memory constructs (e.g. String) provide limited benefit for asynchronous protocols (e.g. buffers may be split at byte boundaries that interrupt utf-8 code points)
+- **There is only support for binary serialization** vis-a-vis the AsyncWrite and AsyncBufRead traits. This is may change in the near future, but alternative, complete memory constructs (e.g. String) provide limited benefit for asynchronous protocols (e.g. buffers may be split at byte boundaries that interrupt utf-8 code points)
 
 All that aside, **diny** is still in active design, so decisions on any of the above items could change significantly and without notice.
 
@@ -69,7 +69,7 @@ fn main() {
     let write = point.serialize(&format, &mut writer);
     let _ = block_on(write);
 
-    // A reader can be any implementation of futures::io::{AsyncRead + AsyncBufRead}.
+    // A reader can be any implementation of futures::io::AsyncBufRead.
     // In this case, we're using a utility module to convert the bytes written
     // to the vec into an appropriate reader.
     let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);

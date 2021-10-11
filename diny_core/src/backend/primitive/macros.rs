@@ -40,13 +40,13 @@ macro_rules! deserialize {
             type Future<'r, F, R>
             where
                 F: 'r + crate::backend::FormatDeserialize,
-                R: 'r + crate::io::AsyncRead + crate::io::AsyncBufRead + Unpin,
+                R: 'r + crate::io::AsyncBufRead + Unpin,
             = F::$fut<'r, R>;
 
             fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
             where
                 F: crate::backend::FormatDeserialize,
-                R: crate::io::AsyncRead + crate::io::AsyncBufRead + Unpin,
+                R: crate::io::AsyncBufRead + Unpin,
             {
                 F::$fun(format, reader)
             }

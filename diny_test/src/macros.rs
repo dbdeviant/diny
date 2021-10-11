@@ -18,7 +18,7 @@ macro_rules! deserialize_exact_def {
 
         pub(crate) fn deserialize<'r, R>(format: &'r $format, reader: &'r mut R) -> DeserializeExact<'r, R>
         where
-            R: ::diny::io::AsyncRead + ::diny::io::AsyncBufRead + Unpin,
+            R: ::diny::io::AsyncBufRead + Unpin,
         {
             DeserializeExact::new(format, reader, <$decoder as ::diny::backend::Decode>::init())
         }

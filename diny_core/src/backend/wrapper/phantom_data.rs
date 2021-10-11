@@ -64,7 +64,7 @@ where
     fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>)
         -> backend::StartDecodeStatus<Self::Data, Self, <<Self as backend::Decode>::Format as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         <() as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
         .bimap(
@@ -76,7 +76,7 @@ where
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) 
         -> backend::PollDecodeStatus<Self::Data, <<Self as backend::Decode>::Format as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         self.0.poll_decode(format, reader, cx)
         .map(|()| PhantomData)

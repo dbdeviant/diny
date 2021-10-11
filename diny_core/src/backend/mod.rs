@@ -86,15 +86,15 @@ pub trait AsyncDeserialize: Decodable
     type Future<'r, F, R>: Future<Output=Result<Self, F::Error>> + Unpin
     where
         F: 'r + FormatDeserialize,
-        R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: 'r + io::AsyncBufRead + Unpin,
     ;
 
     /// Attempt to deserialize the type asynchronously for the indicated [format](Format)
-    /// via the provided [asynchronous reader](io::AsyncRead).
+    /// via the provided [asynchronous reader](io::AsyncBufRead).
     fn deserialize<'r, F, R>(format: &'r F, reader: &'r mut R) -> Self::Future<'r, F, R>
     where
         F: FormatDeserialize,
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     ;
 }
 

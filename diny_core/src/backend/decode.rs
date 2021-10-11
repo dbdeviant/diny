@@ -161,7 +161,7 @@ impl<Dta, Err> From<PollDecodeStatus<Dta, Err>> for Poll<Result<Dta, Err>> {
     }
 }
 
-/// Attempt to decode a data structure from an [asynchronous reader](io::AsyncRead)
+/// Attempt to decode a data structure from an [asynchronous reader](io::AsyncBufRead)
 /// for a particular [format](FormatDecode)
 pub trait Decode: Sized {
     /// The concrete [format](FormatDecode) to decode with.
@@ -173,7 +173,7 @@ pub trait Decode: Sized {
     /// Initialize the internal state of the decoder.
     fn init() -> Self;
 
-    /// Begin decoding bytes for the indicated [format](FormatDecode) from the provided [reader](io::AsyncRead).
+    /// Begin decoding bytes for the indicated [format](FormatDecode) from the provided [reader](io::AsyncBufRead).
     ///
     /// This is intended to be overriden whenever an optimized code path exists for the (usual) case where
     /// enough bytes have been buffered into the [reader](io::AsyncBufRead) that the operation will
@@ -184,7 +184,7 @@ pub trait Decode: Sized {
     /// `init` followed by `poll_decode`
     fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> StartDecodeStatus<Self::Data, Self, <<Self as Decode>::Format as Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         let mut dec = Self::init();
         dec.poll_decode(format, reader, cx)
@@ -194,6 +194,6 @@ pub trait Decode: Sized {
     /// Continue a [pending](Poll) [decode](FormatDecode) operation.
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> PollDecodeStatus<Self::Data, <<Self as Decode>::Format as Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     ;
 }

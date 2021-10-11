@@ -75,7 +75,7 @@ where
 
     fn start_decode<R>(format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         F::DecodeUnit::start_decode(format, reader, cx)
         .and_then(
@@ -86,7 +86,7 @@ where
 
     fn poll_decode<R>(&mut self, format: &F, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         match self {
             Self::Init(_) => decode_chain!(*self, Self, Self::start_decode(format, reader, cx)),

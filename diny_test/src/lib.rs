@@ -157,53 +157,53 @@ impl diny::backend::FormatDecode for Formatter {
 
 impl diny::backend::FormatDeserialize for Formatter
 {
-    type DeserializeUnit<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::unit::DeserializeExact<'r, R>;
-    type DeserializeBool<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::bool::DeserializeExact<'r, R>;
+    type DeserializeUnit<'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::unit::DeserializeExact<'r, R>;
+    type DeserializeBool<'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::bool::DeserializeExact<'r, R>;
 
-    type DeserializeI8  <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::i8  ::DeserializeExact<'r, R>;
-    type DeserializeI16 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::i16 ::DeserializeExact<'r, R>;
-    type DeserializeI32 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::i32 ::DeserializeExact<'r, R>;
-    type DeserializeI64 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::i64 ::DeserializeExact<'r, R>;
-    type DeserializeI128<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::i128::DeserializeExact<'r, R>;
+    type DeserializeI8  <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::i8  ::DeserializeExact<'r, R>;
+    type DeserializeI16 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::i16 ::DeserializeExact<'r, R>;
+    type DeserializeI32 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::i32 ::DeserializeExact<'r, R>;
+    type DeserializeI64 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::i64 ::DeserializeExact<'r, R>;
+    type DeserializeI128<'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::i128::DeserializeExact<'r, R>;
 
-    type DeserializeU8  <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::u8  ::DeserializeExact<'r, R>;
-    type DeserializeU16 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::u16 ::DeserializeExact<'r, R>;
-    type DeserializeU32 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::u32 ::DeserializeExact<'r, R>;
-    type DeserializeU64 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::u64 ::DeserializeExact<'r, R>;
-    type DeserializeU128<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::u128::DeserializeExact<'r, R>;
+    type DeserializeU8  <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::u8  ::DeserializeExact<'r, R>;
+    type DeserializeU16 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::u16 ::DeserializeExact<'r, R>;
+    type DeserializeU32 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::u32 ::DeserializeExact<'r, R>;
+    type DeserializeU64 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::u64 ::DeserializeExact<'r, R>;
+    type DeserializeU128<'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::u128::DeserializeExact<'r, R>;
 
-    type DeserializeF32 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::f32 ::DeserializeExact<'r, R>;
-    type DeserializeF64 <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::f64 ::DeserializeExact<'r, R>;
+    type DeserializeF32 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::f32 ::DeserializeExact<'r, R>;
+    type DeserializeF64 <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::f64 ::DeserializeExact<'r, R>;
 
-    type DeserializeChar  <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::char  ::DeserializeExact<'r, R>;
+    type DeserializeChar  <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::char  ::DeserializeExact<'r, R>;
     #[cfg(any(feature = "std", feature = "alloc"))]
-    type DeserializeString<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::string::DeserializeExact<'r, R>;
+    type DeserializeString<'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::string::DeserializeExact<'r, R>;
 
-    type DeserializeVariantIdx <'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::variant_idx ::DeserializeExact<'r, R>;
-    type DeserializeSequenceLen<'r, R> where R: 'r + io::AsyncRead + io::AsyncBufRead + Unpin = format::sequence_len::DeserializeExact<'r, R>;
+    type DeserializeVariantIdx <'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::variant_idx ::DeserializeExact<'r, R>;
+    type DeserializeSequenceLen<'r, R> where R: 'r + io::AsyncBufRead + Unpin = format::sequence_len::DeserializeExact<'r, R>;
 
-    fn deserialize_unit<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeUnit<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::unit::deserialize(self, reader) }
-    fn deserialize_bool<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeBool<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::bool::deserialize(self, reader) }
+    fn deserialize_unit<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeUnit<'r, R> where R: io::AsyncBufRead + Unpin { format::unit::deserialize(self, reader) }
+    fn deserialize_bool<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeBool<'r, R> where R: io::AsyncBufRead + Unpin { format::bool::deserialize(self, reader) }
 
-    fn deserialize_i8  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI8  <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::i8  ::deserialize(self, reader) }
-    fn deserialize_i16 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI16 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::i16 ::deserialize(self, reader) }
-    fn deserialize_i32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI32 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::i32 ::deserialize(self, reader) }
-    fn deserialize_i64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI64 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::i64 ::deserialize(self, reader) }
-    fn deserialize_i128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI128<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::i128::deserialize(self, reader) }
+    fn deserialize_i8  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI8  <'r, R> where R: io::AsyncBufRead + Unpin { format::i8  ::deserialize(self, reader) }
+    fn deserialize_i16 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI16 <'r, R> where R: io::AsyncBufRead + Unpin { format::i16 ::deserialize(self, reader) }
+    fn deserialize_i32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI32 <'r, R> where R: io::AsyncBufRead + Unpin { format::i32 ::deserialize(self, reader) }
+    fn deserialize_i64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI64 <'r, R> where R: io::AsyncBufRead + Unpin { format::i64 ::deserialize(self, reader) }
+    fn deserialize_i128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeI128<'r, R> where R: io::AsyncBufRead + Unpin { format::i128::deserialize(self, reader) }
 
-    fn deserialize_u8  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU8  <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::u8  ::deserialize(self, reader) }
-    fn deserialize_u16 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU16 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::u16 ::deserialize(self, reader) }
-    fn deserialize_u32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU32 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::u32 ::deserialize(self, reader) }
-    fn deserialize_u64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU64 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::u64 ::deserialize(self, reader) }
-    fn deserialize_u128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU128<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::u128::deserialize(self, reader) }
+    fn deserialize_u8  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU8  <'r, R> where R: io::AsyncBufRead + Unpin { format::u8  ::deserialize(self, reader) }
+    fn deserialize_u16 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU16 <'r, R> where R: io::AsyncBufRead + Unpin { format::u16 ::deserialize(self, reader) }
+    fn deserialize_u32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU32 <'r, R> where R: io::AsyncBufRead + Unpin { format::u32 ::deserialize(self, reader) }
+    fn deserialize_u64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU64 <'r, R> where R: io::AsyncBufRead + Unpin { format::u64 ::deserialize(self, reader) }
+    fn deserialize_u128<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeU128<'r, R> where R: io::AsyncBufRead + Unpin { format::u128::deserialize(self, reader) }
 
-    fn deserialize_f32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF32 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::f32 ::deserialize(self, reader) }
-    fn deserialize_f64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF64 <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::f64 ::deserialize(self, reader) }
+    fn deserialize_f32 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF32 <'r, R> where R: io::AsyncBufRead + Unpin { format::f32 ::deserialize(self, reader) }
+    fn deserialize_f64 <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeF64 <'r, R> where R: io::AsyncBufRead + Unpin { format::f64 ::deserialize(self, reader) }
 
-    fn deserialize_char  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar  <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::char  ::deserialize(self, reader) }
+    fn deserialize_char  <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeChar  <'r, R> where R: io::AsyncBufRead + Unpin { format::char  ::deserialize(self, reader) }
     #[cfg(any(feature = "std", feature = "alloc"))]
-    fn deserialize_string<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeString<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::string::deserialize(self, reader) }
+    fn deserialize_string<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeString<'r, R> where R: io::AsyncBufRead + Unpin { format::string::deserialize(self, reader) }
 
-    fn deserialize_variant_idx <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeVariantIdx <'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::variant_idx ::deserialize(self, reader) }
-    fn deserialize_sequence_len<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeSequenceLen<'r, R> where R: io::AsyncRead + io::AsyncBufRead + Unpin { format::sequence_len::deserialize(self, reader) }
+    fn deserialize_variant_idx <'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeVariantIdx <'r, R> where R: io::AsyncBufRead + Unpin { format::variant_idx ::deserialize(self, reader) }
+    fn deserialize_sequence_len<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeSequenceLen<'r, R> where R: io::AsyncBufRead + Unpin { format::sequence_len::deserialize(self, reader) }
 }

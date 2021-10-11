@@ -39,7 +39,7 @@ macro_rules! numeric_encode_decode_def {
         
             fn start_decode<R>(_format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 let mut dec = Self::init();
                 match (&mut dec.0).start_read(reader, cx) {
@@ -51,7 +51,7 @@ macro_rules! numeric_encode_decode_def {
 
             fn poll_decode<R>(&mut self, _format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 match (&mut self.0).read_remaining(reader, cx) {
                     backend::PollDecodeStatus::Fini(())   => from_le_bytes(*self.0.buffer()).into(),
@@ -153,7 +153,7 @@ macro_rules! usize_wrapper_def {
         
             fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::StartDecodeStatus<Self::Data, Self, <<Self as diny::backend::Decode>::Format as Format>::Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 wrapper::Decoder::start_decode(format, reader, cx)
                 .and_then(
@@ -167,7 +167,7 @@ macro_rules! usize_wrapper_def {
 
             fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> diny::backend::PollDecodeStatus<Self::Data, Error>
             where
-                R: io::AsyncRead + io::AsyncBufRead + Unpin,
+                R: io::AsyncBufRead + Unpin,
             {
                 self.0.poll_decode(format, reader, cx)
                 .and_then(

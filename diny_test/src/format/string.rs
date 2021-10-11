@@ -65,7 +65,7 @@ impl backend::Decode for Decoder {
 
     fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <<Self as backend::Decode>::Format as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         ByteVecDecoder::start_decode(format, reader, cx)
         .and_then(
@@ -76,7 +76,7 @@ impl backend::Decode for Decoder {
 
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <<Self as backend::Decode>::Format as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
      {
          self.0.poll_decode(format, reader, cx)
          .and_then(|d| into_string(d).into())
@@ -87,7 +87,7 @@ pub type DeserializeExact<'r, R> = backend::future::deserialize_exact::Deseriali
 
 pub(crate) fn deserialize<'r, R>(format: &'r ThisFormat, reader: &'r mut R) -> DeserializeExact<'r, R>
 where
-    R: diny::io::AsyncRead + diny::io::AsyncBufRead + Unpin,
+    R: diny::io::AsyncBufRead + Unpin,
 {
     backend::DeserializeExact::new(format, reader, <Decoder as backend::Decode>::init())
 }

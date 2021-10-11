@@ -75,7 +75,7 @@ where
 {
     fn after_init<R>(format: &F, reader: &mut R, data: &mut Data, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         <SequenceLen as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx)
         .and_then(
@@ -86,7 +86,7 @@ where
 
     fn after_len<R>(_format: &F, reader: &mut R, len: usize, data: &mut Data, cx: &mut Context<'_>) -> backend::StartDecodeStatus<(), Self, <F as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         if len > 0 {
             data.reserve_exact(len);
@@ -118,7 +118,7 @@ impl backend::Decode for Decoder
 
     fn start_decode<R>(format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::StartDecodeStatus<Self::Data, Self, <Self::Format as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         let mut data = Data::new();
         match DecodeCursor::after_init(format, reader, &mut data, cx) {
@@ -130,7 +130,7 @@ impl backend::Decode for Decoder
 
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> backend::PollDecodeStatus<Self::Data, <Self::Format as backend::Format>::Error>
     where
-        R: io::AsyncRead + io::AsyncBufRead + Unpin,
+        R: io::AsyncBufRead + Unpin,
     {
         if let Some(state) = &mut self.state {
             match &mut state.cursor {

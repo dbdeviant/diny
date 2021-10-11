@@ -47,7 +47,7 @@ fn main() {
     let write = point.serialize(&format, &mut writer);
     let _ = block_on(write);
 
-    // A reader can be any implementation of futures::io::{AsyncRead + AsyncBufRead}.
+    // A reader can be any implementation of futures::io::AsyncBufRead.
     // In this case, we're using a utility module to convert the bytes written
     // to the vec into an appropriate reader.
     let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);
