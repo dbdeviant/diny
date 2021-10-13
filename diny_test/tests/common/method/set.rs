@@ -10,14 +10,15 @@ where
     C: diny::AsyncSerialization + IsEquivalentTo,
 {
     #[cfg(any(feature = "std", feature = "alloc"))]
-    assert!(send.is_equivalent_to(&serialize_vec(&send)));
+    let recv = serialize_vec(&send);
     #[cfg(not(any(feature = "std", feature = "alloc")))]
-    assert!(send.is_equivalent_to(&serialize_slice(send, &mut [0u8; 1024])));
+    let recv = serialize_slice(send, &mut [0u8; 1024]);
+    assert!(send.is_equivalent_to(&serialize_vec(&send)));
 
     #[cfg(feature = "std")]
     assert!(send.is_equivalent_to(&serialize_pin_hole(&send)));
 
-    stream(send);
+    assert!(recv.is_equivalent_to(&stream(send)));
 }
 
 #[allow(unused)]
@@ -25,19 +26,22 @@ pub fn test_serialize_exact<C, const LEN: usize>(send: C)
 where
     C: diny::AsyncSerialization + IsEquivalentTo,
 {
-    test_serialize_exact_ref::<C, LEN>(&send);
-    stream_exact::<C, LEN>(send);
+    let recv = test_serialize_exact_ref::<C, LEN>(&send);
+    assert!(recv.is_equivalent_to(&stream_exact::<C, LEN>(send)));
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact_ref<C, const LEN: usize>(send: &C)
+pub fn test_serialize_exact_ref<C, const LEN: usize>(send: &C) -> C
 where
     C: diny::AsyncSerialization + IsEquivalentTo,
 {
-    assert!(send.is_equivalent_to(&serialize_exact_ref::<C, LEN>(send)));
+    let recv = serialize_exact_ref::<C, LEN>(send);
+    assert!(send.is_equivalent_to(&recv));
 
     #[cfg(feature = "std")]
     assert!(send.is_equivalent_to(&serialize_pin_hole(send)));
+
+    recv
 }
 
 #[allow(unused)]

@@ -30,27 +30,36 @@ pub fn test_serialize_exact<T, const LEN: usize>(send: T)
 where
     T: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    test_serialize_exact_ref::<T, LEN>(&send);
-    stream_exact::<T, LEN>(send);
+    let recv_1 = test_serialize_exact_ref::<T, LEN>(&send);
+
+    #[cfg(feature = "std")]
+    assert!(cmp_eq(&send, &serialize_pin_hole(&send)));
+
+    let recv_2 = stream_exact::<T, LEN>(send);
+    assert!(cmp_eq(&recv_1, &recv_2));
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact_ref<T, const LEN: usize>(send: &T)
+pub fn test_serialize_exact_ref<T, const LEN: usize>(send: &T) -> T
 where
     T: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    assert!(cmp_eq(send, &serialize_exact_ref::<T, LEN>(send)));
+    let recv = serialize_exact_ref::<T, LEN>(send);
+    assert!(cmp_eq(send, &recv));
 
     #[cfg(feature = "std")]
     assert!(cmp_eq(send, &serialize_pin_hole(send)));
+
+    recv
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact_ref_no_cmp<T, const LEN: usize>(send: &T) -> T
+pub fn test_serialize_exact_no_cmp<T, const LEN: usize>(send: T) -> T
 where
     T: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    serialize_exact_ref::<T, LEN>(send)
+    serialize_exact_ref::<T, LEN>(&send);
+    stream_exact::<T, LEN>(send)
 }
 
 #[allow(unused)]

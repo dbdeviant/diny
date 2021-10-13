@@ -51,24 +51,28 @@ where
     C: diny::AsyncSerialization + Iterable,
     C::Item: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    assert!(cmp_ord(&send, &serialize_exact_ref::<C, LEN>(&send)));
+    let recv_1 = test_serialize_exact_ref::<C, LEN>(&send);
 
     #[cfg(feature = "std")]
     assert!(cmp_ord(&send, &serialize_pin_hole(&send)));
 
-    let _ = stream_exact::<C, LEN>(send);
+    let recv_2 = stream_exact::<C, LEN>(send);
+    assert!(cmp_ord(&recv_1, &recv_2));
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact_ref<'a, C, const LEN: usize>(send: &'a C)
+pub fn test_serialize_exact_ref<'a, C, const LEN: usize>(send: &'a C) -> C
 where
     C: diny::AsyncSerialize + diny::AsyncDeserialize + Iterable,
     C::Item: 'a + diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    assert!(cmp_ord(send, &serialize_exact_ref::<C, LEN>(send)));
+    let recv = serialize_exact_ref::<C, LEN>(send);
+    assert!(cmp_ord(send, &recv));
 
     #[cfg(feature = "std")]
     assert!(cmp_ord(send, &serialize_pin_hole(send)));
+
+    recv
 }
 
 #[allow(unused)]

@@ -129,7 +129,7 @@ fn can_serialize_f32() {
     test_serialize_exact::<f32, LEN>(-1f32);
     test_serialize_exact::<f32, LEN>( 0f32);
     test_serialize_exact::<f32, LEN>( 1f32);
-    assert!(test_serialize_exact_ref_no_cmp::<f32, LEN>(& f32::NAN).is_nan());
+    assert!(test_serialize_exact_no_cmp::<f32, LEN>(f32::NAN).is_nan());
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn can_serialize_f64() {
     test_serialize_exact::<f64, LEN>(-1f64);
     test_serialize_exact::<f64, LEN>( 0f64);
     test_serialize_exact::<f64, LEN>( 1f64);
-    assert!(test_serialize_exact_ref_no_cmp::<f64, LEN>(&  f64::NAN).is_nan());
+    assert!(test_serialize_exact_no_cmp::<f64, LEN>(f64::NAN).is_nan());
 }
 
 #[test]
