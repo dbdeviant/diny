@@ -18,5 +18,5 @@ fn can_serialize_my_rec() {
         opt_u32_3: Some(Some(2u32.pow(26))) // 2*VAR_IDX_LEN + 4 = 12
     };                                      // 20
 
-    test_serialize_exact::<MyRec, 20>(&send);
+    test_serialize_exact::<MyRec, 20>(send);
 }

@@ -18,26 +18,26 @@ mod test {
 
     #[test]
     fn can_serialize_empty_string() {
-        test_serialize_exact::<String, SEQ_LEN>(&String::new());
+        test_serialize_exact::<String, SEQ_LEN>(String::new());
     }
 
     #[test]
     fn can_serialize_single_char_string() {
-        test_serialize_exact::<String, {SEQ_LEN + 1}>(&"a".into());
+        test_serialize_exact::<String, {SEQ_LEN + 1}>("a".into());
     }
 
     #[test]
     fn can_serialize_multi_char_string() {
-        test_serialize_exact::<String, {SEQ_LEN + 3}>(&"abc".into());
+        test_serialize_exact::<String, {SEQ_LEN + 3}>("abc".into());
     }
 
     #[test]
     fn can_serialize_long_string() {
-        test_serialize_exact::<String, {SEQ_LEN + 26}>(&"abcdefghijklmnopqrstuvwxyz".into());
+        test_serialize_exact::<String, {SEQ_LEN + 26}>("abcdefghijklmnopqrstuvwxyz".into());
     }
 
     #[test]
     fn can_serialize_unicode_char_string() {
-        test_serialize_exact::<String, {SEQ_LEN + 4}>(&"🔥".into());
+        test_serialize_exact::<String, {SEQ_LEN + 4}>("🔥".into());
     }
 }

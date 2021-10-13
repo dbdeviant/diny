@@ -2,7 +2,17 @@ use super::*;
     
 
 #[allow(unused)]
-pub fn test_serialize<T>(send: &T)
+pub fn test_serialize<T>(send: T)
+where
+    T: diny::AsyncSerialize + diny::AsyncDeserialize + PartialEq + core::fmt::Debug,
+{
+    test_serialize_ref(&send);
+    stream(send);
+
+}
+
+#[allow(unused)]
+pub fn test_serialize_ref<T>(send: &T)
 where
     T: diny::AsyncSerialize + diny::AsyncDeserialize + PartialEq + core::fmt::Debug,
 {
@@ -16,28 +26,37 @@ where
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact<T, const LEN: usize>(send: &T)
+pub fn test_serialize_exact<T, const LEN: usize>(send: T)
 where
-    T: diny::AsyncSerialize + diny::AsyncDeserialize + PartialEq + core::fmt::Debug,
+    T: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    assert!(cmp_eq(send, &serialize_exact::<T, LEN>(send)));
+    test_serialize_exact_ref::<T, LEN>(&send);
+    stream_exact::<T, LEN>(send);
+}
+
+#[allow(unused)]
+pub fn test_serialize_exact_ref<T, const LEN: usize>(send: &T)
+where
+    T: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
+{
+    assert!(cmp_eq(send, &serialize_exact_ref::<T, LEN>(send)));
 
     #[cfg(feature = "std")]
     assert!(cmp_eq(send, &serialize_pin_hole(send)));
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact_no_cmp<T, const LEN: usize>(send: &T) -> T
+pub fn test_serialize_exact_ref_no_cmp<T, const LEN: usize>(send: &T) -> T
 where
-    T: diny::AsyncSerialize + diny::AsyncDeserialize + PartialEq + core::fmt::Debug,
+    T: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    serialize_exact::<T, LEN>(send)
+    serialize_exact_ref::<T, LEN>(send)
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact_with_error<T, const LEN: usize>(send: &T)
+pub fn test_serialize_exact_ref_with_error<T, const LEN: usize>(send: &T)
 where
-    T: diny::AsyncSerialize + diny::AsyncDeserialize,
+    T: diny::AsyncSerialization,
 {
     serialize_slice_err(send, &mut [0u8; LEN]);
 }

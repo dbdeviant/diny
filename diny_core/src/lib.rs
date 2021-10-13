@@ -21,13 +21,21 @@ mod macros;
 
 /// Types and traits implemented by backend [formatters](backend::Format)
 pub mod backend;
+
 /// Helper modules for implementing buffered serialization primitives
 pub mod buffer;
-/// Helper modules that may be externally useful
-pub mod util;
+
+/// Types used to support deserialization streams
+pub mod deserializer;
 
 /// Re-export of io related structures
 pub mod io;
+
+/// Types used to suport serialization sinks
+pub mod serializer;
+
+/// Helper modules that may be externally useful
+pub mod util;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 #[cfg(feature = "diny_derive")]
@@ -47,3 +55,6 @@ pub use backend::{
     AsyncSerialize,
     AsyncSerialization,
 };
+
+pub use deserializer::{deserializer, Deserialize, Deserializer};
+pub use serializer::{serializer, Serialize, Serializer};

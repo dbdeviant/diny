@@ -8,6 +8,7 @@
 #[doc(hidden)] pub mod intrinsic;
 #[doc(hidden)] pub mod primitive;
 #[doc(hidden)] pub mod wrapper;
+
 /// Types used to support structural serialization
 pub mod internal;
 

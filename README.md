@@ -79,6 +79,37 @@ fn main() {
 }
 ```
 
+A streaming interface is also available.
+
+```rust
+#![feature(generic_associated_types)]
+
+use futures::{executor::block_on, SinkExt, StreamExt};
+
+#[derive(diny::AsyncSerialization)]
+pub struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let point = Point { x: 1, y: 2 };
+
+    // A sink is constructible for any implementor of diny::AsyncSerialize
+    let mut sink = diny::serializer(diny_test::format(), vec!()).into_sink();
+    block_on(sink.send(point));
+
+    // If the sink is finished sending, it can be destructed into the inner Serializer
+    assert!(sink.is_ready());
+    let diny::Serializer { format, writer } = sink.try_into_inner().unwrap();
+    let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);
+
+    // A stream is constructible for any implementor of diny::AsyncDeserialize
+    let mut stream = diny::deserializer(format, &mut reader).into_stream();
+    let deserialized: Point = block_on(stream.next()).unwrap();
+}
+```
+
 <br/>
 
 #### License

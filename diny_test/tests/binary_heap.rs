@@ -26,14 +26,14 @@ mod test {
     
     #[test]
     fn can_serialize_empty_binary_heap() {
-        test_serialize_exact::<BinaryHeap<u64>, {SEQ_LEN}>(&BinaryHeap::new());
+        test_serialize_exact::<BinaryHeap<u64>, {SEQ_LEN}>(BinaryHeap::new());
     }
     
     #[test]
     fn can_serialize_binary_heap_single() {
         let mut vd = BinaryHeap::new();
         vd.push(5);
-        test_serialize_exact::<BinaryHeap<u64>, {SEQ_LEN + 8}>(&vd);
+        test_serialize_exact::<BinaryHeap<u64>, {SEQ_LEN + 8}>(vd);
     }
     
     #[test]
@@ -42,6 +42,6 @@ mod test {
         vd.push(1);
         vd.push(2);
         vd.push(3);
-        test_serialize_exact::<BinaryHeap<u64>, {SEQ_LEN+8*3}>(&vd);
+        test_serialize_exact::<BinaryHeap<u64>, {SEQ_LEN+8*3}>(vd);
     }
 }

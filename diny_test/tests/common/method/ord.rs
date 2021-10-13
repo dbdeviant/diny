@@ -29,27 +29,43 @@ where
 }
 
 #[allow(unused)]
-pub fn test_serialize<'a, C>(send: &'a C)
+pub fn test_serialize<C>(send: C)
 where
-    C: diny::AsyncSerialize + diny::AsyncDeserialize + Iterable,
-    C::Item: 'a + diny::AsyncSerialize + diny::AsyncDeserialize + PartialEq + core::fmt::Debug,
+    C: diny::AsyncSerialization + Iterable,
+    C::Item: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
     #[cfg(any(feature = "std", feature = "alloc"))]
-    assert!(cmp_ord(send, &serialize_vec(send)));
+    assert!(cmp_ord(&send, &serialize_vec(&send)));
     #[cfg(not(any(feature = "std", feature = "alloc")))]
     assert!(cmp_ord(send, &serialize_slice(send, &mut [0u8; 1024])));
 
     #[cfg(feature = "std")]
-    assert!(cmp_ord(send, &serialize_pin_hole(send)));
+    assert!(cmp_ord(&send, &serialize_pin_hole(&send)));
+
+    stream(send);
 }
 
 #[allow(unused)]
-pub fn test_serialize_exact<'a, C, const LEN: usize>(send: &'a C)
+pub fn test_serialize_exact<C, const LEN: usize>(send: C)
+where
+    C: diny::AsyncSerialization + Iterable,
+    C::Item: diny::AsyncSerialization + PartialEq + core::fmt::Debug,
+{
+    assert!(cmp_ord(&send, &serialize_exact_ref::<C, LEN>(&send)));
+
+    #[cfg(feature = "std")]
+    assert!(cmp_ord(&send, &serialize_pin_hole(&send)));
+
+    let _ = stream_exact::<C, LEN>(send);
+}
+
+#[allow(unused)]
+pub fn test_serialize_exact_ref<'a, C, const LEN: usize>(send: &'a C)
 where
     C: diny::AsyncSerialize + diny::AsyncDeserialize + Iterable,
-    C::Item: 'a + core::fmt::Debug + PartialEq + diny::AsyncSerialize + diny::AsyncDeserialize,
+    C::Item: 'a + diny::AsyncSerialization + PartialEq + core::fmt::Debug,
 {
-    assert!(cmp_ord(send, &serialize_exact::<C, LEN>(send)));
+    assert!(cmp_ord(send, &serialize_exact_ref::<C, LEN>(send)));
 
     #[cfg(feature = "std")]
     assert!(cmp_ord(send, &serialize_pin_hole(send)));
@@ -58,7 +74,7 @@ where
 #[allow(unused)]
 pub fn test_serialize_exact_with_error<T, const LEN: usize>(send: &T)
 where
-    T: diny::AsyncSerialize + diny::AsyncDeserialize,
+    T: diny::AsyncSerialization,
 {
     serialize_slice_err(send, &mut [0u8; LEN]);
 }

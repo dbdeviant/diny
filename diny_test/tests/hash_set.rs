@@ -24,14 +24,14 @@ mod test {
     
     #[test]
     fn can_serialize_empty_hash_set() {
-        test_serialize_exact::<HashSet<u64>, {SEQ_LEN}>(&HashSet::new());
+        test_serialize_exact::<HashSet<u64>, {SEQ_LEN}>(HashSet::new());
     }
     
     #[test]
     fn can_serialize_hash_set_single() {
         let mut vd = HashSet::new();
         vd.insert(5);
-        test_serialize_exact::<HashSet<u64>, {SEQ_LEN + 8}>(&vd);
+        test_serialize_exact::<HashSet<u64>, {SEQ_LEN + 8}>(vd);
     }
     
     #[test]
@@ -40,6 +40,6 @@ mod test {
         vd.insert(1);
         vd.insert(2);
         vd.insert(3);
-        test_serialize_exact::<HashSet<u64>, {SEQ_LEN+8*3}>(&vd);
+        test_serialize_exact::<HashSet<u64>, {SEQ_LEN+8*3}>(vd);
     }
 }

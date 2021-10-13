@@ -11,5 +11,5 @@ use common::empty_struct::*;
 
 #[test]
 fn can_serialize_empty_struct() {
-    test_serialize_exact::<EmptyStruct, 0>(&EmptyStruct::new());
+    test_serialize_exact::<EmptyStruct, 0>(EmptyStruct::new());
 }

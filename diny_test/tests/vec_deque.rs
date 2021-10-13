@@ -13,14 +13,14 @@ mod test {
     
     #[test]
     fn can_serialize_empty_vec_deque() {
-        test_serialize_exact::<VecDeque<u64>, {SEQ_LEN}>(&VecDeque::new());
+        test_serialize_exact::<VecDeque<u64>, {SEQ_LEN}>(VecDeque::new());
     }
     
     #[test]
     fn can_serialize_vec_deque_single() {
         let mut vd = VecDeque::new();
         vd.push_back(5);
-        test_serialize_exact::<VecDeque<u64>, {SEQ_LEN + 8}>(&vd);
+        test_serialize_exact::<VecDeque<u64>, {SEQ_LEN + 8}>(vd);
     }
     
     #[test]
@@ -29,6 +29,6 @@ mod test {
         vd.push_back(1);
         vd.push_back(2);
         vd.push_back(3);
-        test_serialize_exact::<VecDeque<u64>, {SEQ_LEN+8*3}>(&vd);
+        test_serialize_exact::<VecDeque<u64>, {SEQ_LEN+8*3}>(vd);
     }
 }

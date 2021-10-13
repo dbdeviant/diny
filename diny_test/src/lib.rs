@@ -22,6 +22,7 @@ pub fn format() -> Formatter {
 
 /// A test format that trivially encodes the primitives as their
 /// little endian, in memory byte representations.
+#[derive(Debug)]
 pub struct Formatter;
 
 impl diny::backend::Format for Formatter {

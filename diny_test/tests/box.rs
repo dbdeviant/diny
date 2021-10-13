@@ -13,5 +13,5 @@ use common::method::eq::*;
 #[test]
 fn can_serialize_box() {
     const LEN: usize = 8;
-    test_serialize_exact::<Box<u64>, LEN>(&Box::new(u64::MIN));
+    test_serialize_exact::<Box<u64>, LEN>(Box::new(u64::MIN));
 }

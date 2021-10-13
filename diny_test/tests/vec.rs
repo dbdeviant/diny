@@ -22,36 +22,36 @@ mod test {
     
     #[test]
     fn can_serialize_empty_vec() {
-        test_serialize_exact::<Vec<u64>, {SEQ_LEN}>(&Vec::new());
+        test_serialize_exact::<Vec<u64>, {SEQ_LEN}>(Vec::new());
     }
     
     #[test]
     fn can_serialize_vec_single() {
-        test_serialize_exact::<Vec<u64>, {SEQ_LEN + 8}>(&vec![5]);
+        test_serialize_exact::<Vec<u64>, {SEQ_LEN + 8}>(vec![5]);
     }
     
     #[test]
     fn can_serialize_vec_multiple() {
-        test_serialize_exact::<Vec<u64>, {SEQ_LEN+8*3}>(&vec![1,2,3]);
+        test_serialize_exact::<Vec<u64>, {SEQ_LEN+8*3}>(vec![1,2,3]);
     }
     
     #[test]
     fn can_serialize_vec_large() {
-        test_serialize::<Vec<u64>>(&vec![12345678u64; 30]);
+        test_serialize::<Vec<u64>>(vec![12345678u64; 30]);
     }
     
     #[test]
     fn can_serialize_vec_of_options() {
-        test_serialize::<Vec<Option<u64>>>(&vec![Some(1),None,Some(3)]);
+        test_serialize::<Vec<Option<u64>>>(vec![Some(1),None,Some(3)]);
     }
     
     #[test]
     fn can_serialize_vec_of_records() {
-        test_serialize::<Vec<MyRec>>(&vec![MyRec::new(); 3]);
+        test_serialize::<Vec<MyRec>>(vec![MyRec::new(); 3]);
     }
     
     #[test]
     fn can_serialize_vec_of_enums() {
-        test_serialize::<Vec<MyEnum>>(&vec![MyEnum::Bool0(true), MyEnum::U81(4)]);
+        test_serialize::<Vec<MyEnum>>(vec![MyEnum::Bool0(true), MyEnum::U81(4)]);
     }
 }
