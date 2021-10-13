@@ -79,7 +79,7 @@ fn main() {
 }
 ```
 
-A streaming interface is also available.
+A streaming interface is also available:
 
 ```rust
 #![feature(generic_associated_types)]
@@ -110,6 +110,8 @@ fn main() {
 }
 ```
 
+A complete [tokio](https://tokio.rs/) example can be [found](./diny/examples/tokio.rs) in the
+examples directory.
 <br/>
 
 #### License
