@@ -47,6 +47,16 @@ impl<F, W> Serializer<F, W> {
     {
         D::serialize(data, &self.format, &mut self.writer)
     }
+
+    /// Flushes the underlying `writer`
+    pub fn flush(&mut self) -> impl '_ + futures::Future<Output=Result<(), <F as backend::Format>::Error>>
+    where
+        F: backend::FormatSerialize,
+        W: io::AsyncWrite + Unpin,
+    {
+        use futures::{io::AsyncWriteExt, TryFutureExt};
+        self.writer.flush().map_err(|e| e.into())
+    }
 }
 
 
