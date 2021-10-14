@@ -4,23 +4,22 @@ use core::{
 };
 use crate::{backend::{self, Encode, PollEncodeStatus}, io};
 
-/// Creates a new (Serializer) from the specified (format)[backend::FormatEncode]
-/// and (writer)[io::AsyncWrite]
+/// Creates a new [Serializer] from the specified [format](backend::FormatEncode)
+/// and [writer](io::AsyncWrite)
 pub fn serializer<F, W>(format: F, writer: W) -> Serializer<F, W> {
     Serializer::new(format, writer)
 }
 
-/// A wrapper type around a specific (format)[backend::FormatEncode] and (writer)[io::AsyncWrite]
+/// A wrapper type around a specific [format](backend::FormatEncode) and [writer](io::AsyncWrite)
 pub struct Serializer<F, W> {
-    /// The (format)[backend::FormatEncode] used for [encoding](backend::Encode)
+    /// The [format](backend::FormatEncode) used for [encoding](backend::Encode)
     pub format: F,
-    /// The (writer)[io::AsyncWrite] to write (serialized)[backend::AsyncSerialize] bytes to
+    /// The [writer](io::AsyncWrite) to write [serialized](backend::AsyncSerialize) bytes to
     pub writer: W,
 }
 
-
 impl<F, W> Serializer<F, W> {
-    /// Instantiates a new (Serializer) from the (format)[backend::FormatEncode] and (writer)[io::AsyncWrite]
+    /// Instantiates a new [Serializer] from the [format](backend::FormatEncode) and [writer](io::AsyncWrite)
     pub fn new(format: F, writer: W) -> Serializer<F, W> {
         Serializer {
             format,
@@ -28,7 +27,7 @@ impl<F, W> Serializer<F, W> {
         }
     }
 
-    /// Converts the (Deserializer) into a sink for `D`'s
+    /// Converts the [Serializer] into a sink for `D`'s
     pub fn into_sink<D>(self) -> Serialize<F, W, D>
     where
         F: backend::FormatEncode,
@@ -59,7 +58,6 @@ impl<F, W> Serializer<F, W> {
     }
 }
 
-
 enum State<F, D>
 where
     F: backend::FormatEncode,
@@ -87,7 +85,7 @@ where
     W: io::AsyncWrite + Unpin,
     D: backend::Encodable,
 {
-    /// Instantiates a new (Serializer) for the data type `D` from the given `format` and `writer`
+    /// Instantiates a new [Serializer] for the data type `D` from the given `format` and `writer`
     pub fn new(serializer: Serializer<F, W>) -> Self
     where
         W: futures::AsyncWrite + Unpin,

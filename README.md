@@ -42,48 +42,15 @@ diny = { version = "0.2", features = ["derive"] }
 diny_test = "0.2"
 ```
 
-Turn on the feature for GAT's and derive AsyncSerialize / AsyncDeserialize
-(or AsyncSerialization to derive both) on the desired data types.
+Enable GAT support
 
 ```rust
 #![feature(generic_associated_types)]
-
-use futures::executor::block_on;
-use diny::{AsyncSerialize, AsyncDeserialize};
-
-#[derive(Debug, PartialEq, AsyncSerialize, AsyncDeserialize)]
-pub struct Point {
-    x: i32,
-    y: i32,
-}
-
-fn main() {
-    let point = Point { x: 1, y: 2 };
-
-    // A format can be any implementation of
-    // diny::backend::{FormatSerialize + FormatDeserialize}.
-    let format = diny_test::format();
-
-    // A writer can be any implementation of futures::io::AsyncWrite.
-    let mut writer = vec!();
-    let write = point.serialize(&format, &mut writer);
-    let _ = block_on(write);
-
-    // A reader can be any implementation of futures::io::AsyncBufRead.
-    // In this case, we're using a utility module to convert the bytes written
-    // to the vec into an appropriate reader.
-    let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);
-    let read = <Point as AsyncDeserialize>::deserialize(&format, &mut reader);
-    let deserialized = block_on(read).unwrap();
-    assert_eq!(point, deserialized);
-}
 ```
 
-A streaming interface is also available:
+Derive AsyncSerialization support for the desired data types.
 
 ```rust
-#![feature(generic_associated_types)]
-
 use futures::{executor::block_on, SinkExt, StreamExt};
 
 #[derive(diny::AsyncSerialization)]
@@ -92,26 +59,35 @@ pub struct Point {
     y: i32,
 }
 
-fn main() {
-    let point = Point { x: 1, y: 2 };
+let point = Point { x: 1, y: 2 };
 
-    // A sink is constructible for any implementor of diny::AsyncSerialize
-    let mut sink = diny::serializer(diny_test::format(), vec!()).into_sink();
-    block_on(sink.send(point));
+// A format can be any implementation of
+// diny::backend::{FormatSerialize + FormatDeserialize}.
+let format = diny_test::format();
 
-    // If the sink is finished sending, it can be destructed into the inner Serializer
-    assert!(sink.is_ready());
-    let diny::Serializer { format, writer } = sink.try_into_inner().unwrap();
-    let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);
+// A writer can be any implementation of futures::io::AsyncWrite.
+// In this case, we're using a Vec for simplicity.
+let writer = vec!();
 
-    // A stream is constructible for any implementor of diny::AsyncDeserialize
-    let mut stream = diny::deserializer(format, &mut reader).into_stream();
-    let deserialized: Point = block_on(stream.next()).unwrap();
-}
+// A sink is constructible for any implementor of diny::AsyncSerialize
+let mut sink = diny::serializer(format, writer).into_sink();
+block_on(sink.send(point)).unwrap();
+
+// Sinks can be destructed back into the inner serializer
+let diny::Serializer { format, writer } = sink.try_into_inner().unwrap();
+
+// A reader can be any implementation of futures::io::AsyncBufRead.
+// In this case, we're using a utility module to convert the bytes
+// written to the vec into an appropriate reader.
+let reader = diny::util::AsyncSliceReader::from(&writer[..]);
+
+// A stream is constructible for any implementor of diny::AsyncDeserialize
+let mut stream = diny::deserializer(format, reader).into_stream();
+let _: Point = block_on(stream.next()).unwrap();
 ```
 
-A complete [tokio](https://tokio.rs/) example can be [found](./diny/examples/tokio.rs) in the
-examples directory.
+A demonstration of using it with the [tokio](https://tokio.rs/) library can be
+[found](./diny/examples/tokio.rs) in the examples directory.
 <br/>
 
 #### License

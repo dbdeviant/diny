@@ -4,23 +4,22 @@ use core::{
 };
 use crate::{backend::{self, Decode, PollDecodeStatus, StartDecodeStatus}, io};
 
-/// Creates a new (Deserializer) from the specified (format)[backend::FormatDecode]
-/// and (reader)[io::AsyncBufRead]
+/// Creates a new [Deserializer] from the specified [format](backend::FormatDecode)
+/// and [reader](io::AsyncBufRead)
 pub fn deserializer<F, R>(format: F, reader: R) -> Deserializer<F, R> {
     Deserializer::new(format, reader)
 }
 
-/// A wrapper type around a specific (format)[backend::FormatDecode] and (reader)[io::AsyncBufRead]
+/// A wrapper type around a specific [format](backend::FormatDecode) and [reader](io::AsyncBufRead)
 pub struct Deserializer<F, R> {
     /// The (format)[backend::FormatDecode] used for [decoding](backend::Decode)
     pub format: F,
-    /// The (reader)[io::AsyncBufRead] to read (deserialized)[backend::AsyncDeserialize] bytes from
+    /// The (reader)[io::AsyncBufRead] to read [deserialized](backend::AsyncDeserialize) bytes from
     pub reader: R,
 }
 
-
 impl<F, R> Deserializer<F, R> {
-    /// Instantiates a new (Deserializer) from the (format)[backend::FormatDecode] and (reader)[io::AsyncBufRead]
+    /// Instantiates a new [Deserializer] from the [format](backend::FormatDecode) and [reader](io::AsyncBufRead)
     pub fn new(format: F, reader: R) -> Deserializer<F, R> {
         Deserializer{
             format,
@@ -28,7 +27,7 @@ impl<F, R> Deserializer<F, R> {
         }
     }
 
-    /// Converts the (Deserializer) into a stream of `D`'s
+    /// Converts the [Deserializer] into a stream of `D`'s
     pub fn into_stream<D>(self) -> Deserialize<F, R, D>
     where
         F: backend::FormatDecode,
@@ -74,7 +73,7 @@ where
     F: backend::FormatDecode,
     D: backend::Decodable,
 {
-    /// Instantiates a new (Deserializer) for the data type `D` from the given `format` and `reader`
+    /// Instantiates a new [Deserializer] for the data type `D` from the given `format` and `reader`
     pub fn new(deserializer: Deserializer<F, R>) -> Self {
         Self {
             deserializer,
