@@ -43,7 +43,7 @@ diny_test = "0.2"
 ```
 
 Turn on the feature for GAT's and derive AsyncSerialize / AsyncDeserialize
-on the desired data types.
+(or AsyncSerialization to derive both) on the desired data types.
 
 ```rust
 #![feature(generic_associated_types)]

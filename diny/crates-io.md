@@ -21,7 +21,7 @@ diny_test = "0.2"
 ```
 
 Turn on the feature for GAT's and derive AsyncSerialize / AsyncDeserialize
-on the desired data types.
+(or AsyncSerialization to derive both) on the desired data types.
 
 ```rust
 #![feature(generic_associated_types)]
@@ -87,7 +87,7 @@ fn main() {
 }
 ```
 
-And here's an example of using it with tokio:
+An example of using it with tokio:
 
 ```rust
 #![feature(generic_associated_types)]
@@ -166,7 +166,7 @@ async fn main() -> io::Result<()> {
     let client = tokio::spawn(client(ready));
     client.await??;
     server.await??;
-    
+
     Ok(())
 }
 ```
