@@ -59,7 +59,7 @@
 //! let format = diny_test::format();
 //! 
 //! // A writer can be any implementation of futures::io::AsyncWrite.
-//! // In this case, we're using a Vec for simplicity.
+//! // This example is using a Vec for simplicity.
 //! let writer = vec!();
 //! 
 //! // A sink is constructible for any implementor of diny::AsyncSerialize
@@ -70,8 +70,8 @@
 //! let diny::Serializer { format, writer } = sink.try_into_inner().unwrap();
 //! 
 //! // A reader can be any implementation of futures::io::AsyncBufRead.
-//! // In this case, we're using a utility module to convert the bytes
-//! // written to the vec into an appropriate reader.
+//! // This example is using a utility module to convert the bytes
+//! // written to the vec into an async reader.
 //! let reader = diny::util::AsyncSliceReader::from(&writer[..]);
 //! 
 //! // A stream is constructible for any implementor of diny::AsyncDeserialize
