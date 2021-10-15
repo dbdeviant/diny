@@ -20,7 +20,7 @@ diny = { version = "0.2", features = ["derive"] }
 diny_test = "0.2"
 ```
 
-Enable GAT support
+Enable [GAT](https://rust-lang.github.io/rfcs/1598-generic_associated_types.html) support
 
 ```rust
 #![feature(generic_associated_types)]

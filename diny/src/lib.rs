@@ -83,9 +83,8 @@
 //! The [Serializer] and [Deserializer] objects expose `serialize` and
 //! `deserialize` methods respecively, which can be used to interleave
 //! different [serializable](AsyncSerialization) objects over
-//! the same channel.  This has the added benefit of performing the
-//! serialization without the overhead of the ownership transfer
-//! imposed by sinks and streams.
+//! the same channel.  This has the added benefit of serializing by
+//! reference instead of by value.
 //! 
 //! ```
 //! # #![feature(generic_associated_types)]

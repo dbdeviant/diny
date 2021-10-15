@@ -42,7 +42,7 @@ diny = { version = "0.2", features = ["derive"] }
 diny_test = "0.2"
 ```
 
-Enable GAT support
+Enable [GAT](https://rust-lang.github.io/rfcs/1598-generic_associated_types.html) support
 
 ```rust
 #![feature(generic_associated_types)]
@@ -86,8 +86,8 @@ let mut stream = diny::deserializer(format, reader).into_stream();
 let _: Point = block_on(stream.next()).unwrap();
 ```
 
-A demonstration of using it with the [tokio](https://tokio.rs/) library can be
-[found](./diny/examples/tokio.rs) in the examples directory.
+An example of using it with the [tokio](https://tokio.rs/) library
+can be found [here](./diny/examples/tokio.rs).
 <br/>
 
 #### License
