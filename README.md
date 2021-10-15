@@ -48,7 +48,7 @@ Enable [GAT](https://rust-lang.github.io/rfcs/1598-generic_associated_types.html
 #![feature(generic_associated_types)]
 ```
 
-Derive AsyncSerialization support for the desired data types.
+Derive `AsyncSerialization` support for the desired data types.
 
 ```rust
 use futures::{executor::block_on, SinkExt, StreamExt};
@@ -87,7 +87,8 @@ let _: Point = block_on(stream.next()).unwrap();
 ```
 
 An example of using it with the [tokio](https://tokio.rs/) library
-can be found [here](./diny/examples/tokio.rs).
+can be found [here](./diny/examples/tokio.rs), and more detailed
+information is provided in the [documentation](https://docs.rs/diny).
 <br/>
 
 #### License
