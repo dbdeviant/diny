@@ -24,7 +24,8 @@
 //! diny_test = "0.2"
 //! ```
 //!
-//! Add GAT support to your project's main file (e.g. main.rs, lib.rs):
+//! Enable [GAT](https://rust-lang.github.io/rfcs/1598-generic_associated_types.html)
+//! support in your project's module file (e.g. main.rs, lib.rs):
 //!
 //! ```
 //! #![feature(generic_associated_types)]
@@ -129,7 +130,7 @@
 //! # }
 //! ```
 //!
-//! The [AsyncSerialize] and [AsyncDeserialize] traits may also be used manually without
+//! The [AsyncSerialize] and [AsyncDeserialize] traits can be used directly without
 //! building an intermediate [Serializer] or [Deserializer] object.
 //! 
 //! ```
@@ -154,12 +155,12 @@
 //!
 //! # let format = format();
 //! #
-//! #   let mut writer = vec!();
+//! # let mut writer = vec!();
 //! let write = point.serialize(&format, &mut writer);
 //! block_on(write).unwrap();
 //! block_on(writer.flush()).unwrap();
 //! 
-//! #   let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);
+//! # let mut reader = diny::util::AsyncSliceReader::from(&writer[..]);
 //! let read = Point::deserialize(&format, &mut reader);
 //! block_on(read).unwrap();
 //! # }
@@ -168,10 +169,10 @@
 //! Additionally, an object's underlying [Encoder](backend::Encodable::Encoder)
 //! and [Decoder](backend::Decodable::Decoder) can be easily incorporated into
 //! custom futures.  See the [Serialize] and [Deserialize] implementations
-//! for an example of embedding them.
+//! for an example of how to embed them.
 //! 
-//! The examples directory contains a demonstration of how to use the `async-compat`
-//! crate to interoperate with the popular `tokio` library.
+//! An example of using the `async-compat` crate to interoperate with the
+//! `tokio` runtime is provided in the examples directory.
 //!
 //! ## Features
 //!

@@ -86,7 +86,7 @@ let mut stream = diny::deserializer(format, reader).into_stream();
 let _: Point = block_on(stream.next()).unwrap();
 ```
 
-An example of using it with the [tokio](https://tokio.rs/) library
+An example of using it with the [tokio](https://tokio.rs/) runtime
 can be found [here](./diny/examples/tokio.rs), and more detailed
 information is provided in the [documentation](https://docs.rs/diny).
 <br/>
