@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 #[doc(hidden)] pub mod decode;
 #[doc(hidden)] pub mod encode;
 #[doc(hidden)] pub mod format;

@@ -3,11 +3,11 @@ use crate::backend::{Format, FormatDecode};
 use crate::io;
 
 
-/// Contains the resultant state of a [decode](Decode) opertation.
+/// Contains the resultant state of a [start_decode](Decode) opertation.
 ///
-/// This is very simlar to the [Poll] enum, except that in the event
-/// that the operation is pending, the [decode](Decode) state required to resume
-/// the operation is returned.
+/// This is very simlar to the [Poll] enum, except that it is flattened
+/// and that in the event that the operation is pending, the [decode](Decode)
+/// state required to resume the operation is returned.
 pub enum StartDecodeStatus<Dta, Dec, Err> {
     /// The operation has successfully completed [decoding](Decode) the data.
     Fini(Dta),
@@ -67,7 +67,9 @@ impl<Dta, Dec, Err> From<Result<Dta, Err>> for StartDecodeStatus<Dta, Dec, Err> 
     }
 }
 
-
+/// Contains the resultant state of a [poll_decode](Decode) opertation.
+///
+/// This is very simlar to the [Poll] enum, except that it is flattened.
 pub enum PollDecodeStatus<Dta, Err> {
     /// The operation has successfully completed [decoding](Decode) the data.
     Fini(Dta),
@@ -191,7 +193,7 @@ pub trait Decode: Sized {
         .lift(dec)
     }
 
-    /// Continue a [pending](Poll) [decode](FormatDecode) operation.
+    /// Continue a [pending](Poll) [Decode] operation.
     fn poll_decode<R>(&mut self, format: &Self::Format, reader: &mut R, cx: &mut Context<'_>) -> PollDecodeStatus<Self::Data, <<Self as Decode>::Format as Format>::Error>
     where
         R: io::AsyncBufRead + Unpin,

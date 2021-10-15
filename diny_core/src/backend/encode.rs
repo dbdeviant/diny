@@ -3,6 +3,11 @@ use crate::backend::{Format, FormatEncode};
 use crate::io;
 
 
+/// Contains the resultant state of a [start_encode](Encode) opertation.
+///
+/// This is very simlar to the [Poll] enum, except that it is flattened
+/// and that in the event that the operation is pending, the [encode](Encode)
+/// state required to resume the operation is returned.
 pub enum StartEncodeStatus<Enc, Err> {
     Fini,
     Pending(Enc),
@@ -23,6 +28,9 @@ impl<Enc, Err> StartEncodeStatus<Enc, Err> {
     }
 }
 
+/// Contains the resultant state of a [poll_encode](Encode) opertation.
+///
+/// This is very simlar to the [Poll] enum, except that it is flattened.
 pub enum PollEncodeStatus<Err> {
     Fini,
     Pending,
@@ -92,7 +100,7 @@ pub trait Encode: Sized {
         .lift(enc)
     }
 
-    /// Continue a [pending](Poll) [encode](FormatEncode) operation.
+    /// Continue a [pending](Poll) [Encode] operation.
     fn poll_encode<W>(&mut self, format: &Self::Format, writer: &mut W, data: &Self::Data, cx: &mut Context<'_>) -> PollEncodeStatus<<<Self as Encode>::Format as Format>::Error>
     where
         W: io::AsyncWrite + Unpin,
