@@ -1,13 +1,18 @@
-//   $($s: $s_bound $(+ $s_bounds)*,)?
-//  $($s: $s_bound $(+ $s_bounds)*,)?
-
 macro_rules! seq_collection_def {
     ($t: ident < T $(: $t_bound: ident $(+ $t_bounds: ident)*)? $(, $s: ident: $s_bound: ident $(+ $s_bounds: ident)*)? >) => {
         #[allow(unused)]
         use core::marker::PhantomData;
         use core::task::Context;
-        use crate::{backend::{self, Encode as _, Decode as _, internal::SequenceLen}};
-        use crate::io;
+        use crate::{
+            backend::{
+                self,
+                collection::macros::SeqApi,
+                Encode as _,
+                Decode as _,
+                internal::SequenceLen
+            },
+            io
+        };
 
 
         type Data<T $(, $s)?> = $t<T $(, $s)?>;
@@ -52,7 +57,7 @@ macro_rules! seq_collection_def {
             where
                 W: io::AsyncWrite + Unpin,
             {
-                Self::items_from(format, writer, len, 0, <Data<T $(, $s)?> as CollectionApi<T>>::iter_from(data, 0), cx)
+                Self::items_from(format, writer, len, 0, <Data<T $(, $s)?> as SeqApi<T>>::iter_from(data, 0), cx)
             }
                 
             fn items_from<'a, W, I>(format: &F, writer: &mut W, len: usize, idx: usize, iter: I, cx: &mut Context<'_>) -> backend::StartEncodeStatus<Self, <F as backend::Format>::Error>
@@ -101,7 +106,7 @@ macro_rules! seq_collection_def {
                     Self::Init               => encode_chain!(*self, Self::start_encode(format, writer, data, cx)),
                     Self::Len(len, enc)      => encode_poll_chain!(*self, enc.poll_encode(format, writer, len, cx), Self::after_len(format, writer, **len, data, cx)),
                     Self::Cur(len, idx, enc) => {
-                        let mut iter = <Self::Data as CollectionApi<T>>::iter_from(data, *idx);
+                        let mut iter = <Self::Data as SeqApi<T>>::iter_from(data, *idx);
                         match iter.next() {
                             Some(d) => encode_poll_chain!(*self, enc.poll_encode(format, writer, d, cx), Self::items_from(format, writer, *len, *idx + 1, iter, cx)),
                             None    => backend::PollEncodeStatus::Error(F::invalid_input_err()),
@@ -147,7 +152,7 @@ macro_rules! seq_collection_def {
         impl<T $(: $t_bound $(+ $t_bounds)*)? $(, $s: $s_bound $(+ $s_bounds)*)?> PartialData<T $(, $s)?>
         {
             pub fn new() -> Self {
-                Self(<Data::<T $(, $s)?> as CollectionApi<T>>::new())
+                Self(<Data::<T $(, $s)?> as SeqApi<T>>::new())
             }
 
             pub fn into_data(self) -> Data<T $(, $s)?> {
@@ -227,7 +232,7 @@ macro_rules! seq_collection_def {
             where
                 R: io::AsyncBufRead + Unpin,
             {
-                <Data<T $(, $s)?> as CollectionApi<T>>::reserve(data, len);
+                <Data<T $(, $s)?> as SeqApi<T>>::reserve(data, len);
                 Self::items_from(format, reader, len, 0, data, cx)
             }
 
@@ -237,7 +242,7 @@ macro_rules! seq_collection_def {
             {
                 for i in idx..len {
                     match <T as backend::Decodable>::Decoder::<F>::start_decode(format, reader, cx) {
-                        backend::StartDecodeStatus::Fini(d) => { <Data<T $(, $s)?> as CollectionApi<T>>::append(data, d); continue },
+                        backend::StartDecodeStatus::Fini(d) => { <Data<T $(, $s)?> as SeqApi<T>>::append(data, d); continue },
                         backend::StartDecodeStatus::Pending(dec) => return backend::StartDecodeStatus::Pending(Self::Cur(len, i, dec)),
                         backend::StartDecodeStatus::Error(e) => return backend::StartDecodeStatus::Error(e),
                     }
@@ -303,7 +308,7 @@ macro_rules! seq_collection_def {
                                 DecodeCursor,
                                 dec.poll_decode(format, reader, cx),
                                 |d| {
-                                    <Self::Data as CollectionApi<T>>::append(&mut state.data, d);
+                                    <Self::Data as SeqApi<T>>::append(&mut state.data, d);
                                     DecodeCursor::items_from(format, reader, *len, *idx + 1, &mut state.data, cx)
                                 }
                             ),

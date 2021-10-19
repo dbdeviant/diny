@@ -1,26 +1,13 @@
 #[macro_use]
 mod macros;
 
-trait CollectionApi<T>
-{
-    type Iter<'a>: 'a + Iterator<Item=&'a T>
-    where
-        T: 'a
-    ;
-
-    fn new() -> Self;
-    fn reserve(&mut self, len: usize);
-    fn append(&mut self, value: T);
-    fn iter_from(&self, idx: usize) -> Self::Iter<'_>;
-}
-
 #[cfg(any(feature = "std", feature = "alloc"))]
 mod vec {
     #[cfg(all(not(feature = "std"), feature = "alloc"))]
     use alloc::vec::Vec;
-    use super::CollectionApi;
+    use super::macros;
     
-    impl<T> CollectionApi<T> for Vec<T> {
+    impl<T> macros::SeqApi<T> for Vec<T> {
         type Iter<'a>
         where
             T: 'a,
@@ -49,9 +36,9 @@ mod vec {
 #[cfg(feature = "std")]
 mod vec_deque {
     use std::collections::VecDeque;
-    use super::CollectionApi;
+    use super::macros;
 
-    impl<T> CollectionApi<T> for VecDeque<T> {
+    impl<T> macros::SeqApi<T> for VecDeque<T> {
         type Iter<'a>
         where
             T: 'a,
@@ -80,9 +67,9 @@ mod vec_deque {
 #[cfg(feature = "std")]
 mod linked_list {
     use std::collections::LinkedList;
-    use super::CollectionApi;
+    use super::macros;
     
-    impl<T> CollectionApi<T> for LinkedList<T> {
+    impl<T> macros::SeqApi<T> for LinkedList<T> {
         type Iter<'a>
         where
             T: 'a,
@@ -110,9 +97,9 @@ mod linked_list {
 #[cfg(feature = "std")]
 mod binary_heap {
     use std::collections::BinaryHeap;
-    use super::CollectionApi;
+    use super::macros;
     
-    impl<T> CollectionApi<T> for BinaryHeap<T>
+    impl<T> macros::SeqApi<T> for BinaryHeap<T>
     where
         T: Ord,
     {
@@ -143,9 +130,9 @@ mod binary_heap {
 #[cfg(feature = "std")]
 mod btree_set {
     use std::collections::{btree_set, BTreeSet};
-    use super::CollectionApi;
+    use super::macros;
     
-    impl<T> CollectionApi<T> for BTreeSet<T>
+    impl<T> macros::SeqApi<T> for BTreeSet<T>
     where
         T: Ord,
     {
@@ -178,9 +165,9 @@ mod btree_set {
 mod hash_set {
     use core::hash::{Hash, BuildHasher};
     use std::collections::{hash_set, HashSet};
-    use super::CollectionApi;
+    use super::macros;
     
-    impl<T, S> CollectionApi<T> for HashSet<T, S>
+    impl<T, S> macros::SeqApi<T> for HashSet<T, S>
     where
         T: Eq + Hash,
         S: BuildHasher + Default,
@@ -208,4 +195,38 @@ mod hash_set {
     }
 
     seq_collection_def!(HashSet<T: Eq + Hash, S: BuildHasher + Default>);
+}
+
+#[cfg(feature = "std")]
+mod btree_map {
+    use std::collections::{btree_map, BTreeMap};
+    use super::macros;
+    
+    impl<K, V> macros::MapApi<K, V> for BTreeMap<K, V>
+    where
+        K: Ord,
+    {
+        type Iter<'a>
+        where
+            K: 'a,
+            V: 'a,
+        = std::iter::Skip<btree_map::Iter<'a, K, V>>;
+
+        fn new() -> Self {
+            Self::new()
+        }
+
+        fn reserve(&mut self, _len: usize) {
+        }
+
+        fn append(&mut self, key: K, value: V) {
+            self.insert(key, value);
+        }
+
+        fn iter_from(&self, idx: usize) -> Self::Iter<'_> {
+            self.iter().skip(idx)
+        }
+    }
+
+    map_collection_def!(BTreeMap<K: Ord, V>);
 }
