@@ -230,3 +230,40 @@ mod btree_map {
 
     map_collection_def!(BTreeMap<K: Ord, V>);
 }
+
+#[cfg(feature = "std")]
+mod hash_map {
+    use core::hash::{Hash, BuildHasher};
+    use std::collections::{hash_map, HashMap};
+    use super::macros;
+    
+    impl<K, V, S> macros::MapApi<K, V> for HashMap<K, V, S>
+    where
+        K: Eq + Hash,
+        S: BuildHasher + Default,
+    {
+        type Iter<'a>
+        where
+            K: 'a,
+            V: 'a,
+        = std::iter::Skip<hash_map::Iter<'a, K, V>>;
+
+        fn new() -> Self {
+            Self::with_hasher(S::default())
+        }
+
+        fn reserve(&mut self, len: usize) {
+            self.reserve(len)
+        }
+
+        fn append(&mut self, key: K, value: V) {
+            self.insert(key, value);
+        }
+
+        fn iter_from(&self, idx: usize) -> Self::Iter<'_> {
+            self.iter().skip(idx)
+        }
+    }
+
+    map_collection_def!(HashMap<K: Eq + Hash, V, S: BuildHasher + Default>);
+}
