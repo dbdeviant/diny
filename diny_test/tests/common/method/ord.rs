@@ -4,6 +4,7 @@ pub trait Iterable {
     type Item;
     type Iter<'a>: 'a + Iterator<Item=&'a Self::Item>
     where
+        Self: 'a,
         Self::Item: 'a
     ;
 

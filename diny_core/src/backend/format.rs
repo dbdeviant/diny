@@ -51,33 +51,33 @@ pub trait FormatEncode: Format {
 
 /// Define the primitive serialization methods and the concrete [futures](Future) they return.
 pub trait FormatSerialize: FormatEncode {
-    type SerializeUnit<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeBool<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeUnit<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeBool<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeI8  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeI16 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeI32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeI64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeI128<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeI8  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeI16 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeI32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeI64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeI128<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeU8  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeU16 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeU32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeU64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeU128<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeU8  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeU16 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeU32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeU64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeU128<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeF32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeF64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeF32 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeF64 <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeByteSlice<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeByteSlice<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeChar  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeStr   <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeChar  <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeStr   <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
     #[cfg(any(feature = "std", feature = "alloc"))]
-    type SerializeString<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeString<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
-    type SerializeVariantIdx <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
-    type SerializeSequenceLen<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where W: 'w + io::AsyncWrite + Unpin;
+    type SerializeVariantIdx <'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
+    type SerializeSequenceLen<'w, W>: Future<Output=Result<(), Self::Error>> + Unpin where Self: 'w, W: 'w + io::AsyncWrite + Unpin;
 
     fn serialize_unit<'w, W>(&'w self, writer: &'w mut W, data: &()  ) -> Self::SerializeUnit<'w, W> where W: io::AsyncWrite + Unpin;
     fn serialize_bool<'w, W>(&'w self, writer: &'w mut W, data: &bool) -> Self::SerializeBool<'w, W> where W: io::AsyncWrite + Unpin;
@@ -141,30 +141,30 @@ pub trait FormatDecode: Format {
 
 /// Define the primitive deserialization methods and the concrete [futures](Future) they return.
 pub trait FormatDeserialize: FormatDecode {
-    type DeserializeUnit<'r, R>: Future<Output=Result<()  , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeBool<'r, R>: Future<Output=Result<bool, Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeUnit<'r, R>: Future<Output=Result<()  , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeBool<'r, R>: Future<Output=Result<bool, Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
 
-    type DeserializeI8  <'r, R>: Future<Output=Result<i8  , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeI16 <'r, R>: Future<Output=Result<i16 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeI32 <'r, R>: Future<Output=Result<i32 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeI64 <'r, R>: Future<Output=Result<i64 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeI128<'r, R>: Future<Output=Result<i128, Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeI8  <'r, R>: Future<Output=Result<i8  , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeI16 <'r, R>: Future<Output=Result<i16 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeI32 <'r, R>: Future<Output=Result<i32 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeI64 <'r, R>: Future<Output=Result<i64 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeI128<'r, R>: Future<Output=Result<i128, Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
 
-    type DeserializeU8  <'r, R>: Future<Output=Result<u8  , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeU16 <'r, R>: Future<Output=Result<u16 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeU32 <'r, R>: Future<Output=Result<u32 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeU64 <'r, R>: Future<Output=Result<u64 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeU128<'r, R>: Future<Output=Result<u128, Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeU8  <'r, R>: Future<Output=Result<u8  , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeU16 <'r, R>: Future<Output=Result<u16 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeU32 <'r, R>: Future<Output=Result<u32 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeU64 <'r, R>: Future<Output=Result<u64 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeU128<'r, R>: Future<Output=Result<u128, Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
 
-    type DeserializeF32 <'r, R>: Future<Output=Result<f32 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeF64 <'r, R>: Future<Output=Result<f64 , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeF32 <'r, R>: Future<Output=Result<f32 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeF64 <'r, R>: Future<Output=Result<f64 , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
 
-    type DeserializeChar  <'r, R>: Future<Output=Result<char  , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeChar  <'r, R>: Future<Output=Result<char  , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
     #[cfg(any(feature = "std", feature = "alloc"))]
-    type DeserializeString<'r, R>: Future<Output=Result<String, Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeString<'r, R>: Future<Output=Result<String, Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
 
-    type DeserializeVariantIdx <'r, R>: Future<Output=Result<VariantIdx , Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
-    type DeserializeSequenceLen<'r, R>: Future<Output=Result<SequenceLen, Self::Error>> + Unpin where R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeVariantIdx <'r, R>: Future<Output=Result<VariantIdx , Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
+    type DeserializeSequenceLen<'r, R>: Future<Output=Result<SequenceLen, Self::Error>> + Unpin where Self: 'r, R: 'r + io::AsyncBufRead + Unpin;
 
     fn deserialize_unit<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeUnit<'r, R> where R: io::AsyncBufRead + Unpin;
     fn deserialize_bool<'r, R>(&'r self, reader: &'r mut R) -> Self::DeserializeBool<'r, R> where R: io::AsyncBufRead + Unpin;

@@ -174,6 +174,7 @@ mod hash_set {
     {
         type Iter<'a>
         where
+            Self: 'a,
             T: 'a,
         = std::iter::Skip<hash_set::Iter<'a, T>>;
 
@@ -244,6 +245,7 @@ mod hash_map {
     {
         type Iter<'a>
         where
+            Self: 'a,
             K: 'a,
             V: 'a,
         = std::iter::Skip<hash_map::Iter<'a, K, V>>;

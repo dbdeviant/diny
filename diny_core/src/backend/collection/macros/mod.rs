@@ -8,6 +8,7 @@ pub trait MapApi<K, V>
 {
     type Iter<'a>: 'a + Iterator<Item=(&'a K, &'a V)>
     where
+        Self: 'a,
         K: 'a,
         V: 'a,
     ;
@@ -22,6 +23,7 @@ pub trait SeqApi<T>
 {
     type Iter<'a>: 'a + Iterator<Item=&'a T>
     where
+        Self: 'a,
         T: 'a
     ;
 
